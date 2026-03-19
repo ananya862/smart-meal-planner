@@ -1,6 +1,8 @@
 export const config = {
   api: {
-    bodyParser: true,
+    bodyParser: {
+      sizeLimit: '2mb',
+    },
   },
 };
 
@@ -13,24 +15,28 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set' });
+  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
 
   try {
-    let body = { ...req.body };
+    let body = req.body;
 
-    // If fetchUrl provided, fetch the page server-side first
+    // If body came in as a string, parse it
+    if (typeof body === 'string') {
+      body = JSON.parse(body);
+    }
+
+    // If fetchUrl provided, fetch the page server-side
     if (body.fetchUrl) {
       const url = body.fetchUrl;
-      delete body.fetchUrl;
+      const { fetchUrl, ...rest } = body;
+      body = rest;
 
       const pageRes = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)',
+          'Accept': 'text/html',
         },
       });
-
-      if (!pageRes.ok) throw new Error(`Could not fetch page: ${pageRes.status}`);
 
       const html = await pageRes.text();
       const plain = html
@@ -43,7 +49,7 @@ export default async function handler(req, res) {
 
       body.messages = [{
         role: 'user',
-        content: `Extract the recipe from this webpage. URL: ${url}\n\nPage content:\n${plain}`,
+        content: `Extract the recipe from this webpage. URL: ${url}\n\nContent:\n${plain}`,
       }];
     }
 
@@ -60,6 +66,6 @@ export default async function handler(req, res) {
     const data = await response.json();
     return res.status(response.status).json(data);
   } catch (err) {
-    return res.status(500).json({ error: 'Proxy error', detail: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
