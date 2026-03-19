@@ -206,18 +206,18 @@ export default function PantryView({ pantry, setPantry }) {
                     <div style={{
                       padding: '12px 16px',
                       borderBottom: i < byCategory[cat].length - 1 ? '1px solid var(--border)' : 'none',
-                    }}>
+                      cursor: 'pointer',
+                    }}
+                      onClick={() => { setEditingId(item.id); setShowAddForm(false); }}
+                    >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-mid)', flexShrink: 0 }} />
                         <span style={{ flex: 1, fontSize: 15 }}>{item.name}</span>
                         <span style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500 }}>
                           {item.qty} {item.unit}
                         </span>
-                        <button onClick={() => { setEditingId(item.id); setShowAddForm(false); }}
-                          style={{ color: 'var(--text3)', padding: '4px 6px' }}>
-                          <Icon name="edit" size={14} />
-                        </button>
-                        <button onClick={() => handleDelete(item.id)}
+                        <span style={{ fontSize: 11, color: 'var(--text3)' }}>›</span>
+                        <button onClick={e => { e.stopPropagation(); handleDelete(item.id); }}
                           style={{ color: 'var(--text3)', padding: '4px 6px' }}>
                           <Icon name="trash" size={14} />
                         </button>
