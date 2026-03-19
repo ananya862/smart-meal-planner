@@ -12,8 +12,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY not configured' });
 
   try {
     let body = req.body;
@@ -31,7 +31,6 @@ export default async function handler(req, res) {
           'Accept': 'text/html',
         },
       });
-
       const html = await pageRes.text();
       const plain = html
         .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -41,30 +40,41 @@ export default async function handler(req, res) {
         .trim()
         .slice(0, 8000);
 
-      body.userMessage = `Extract the recipe from this webpage. URL: ${url}\n\nContent:\n${plain}`;
+      body.messages = [{
+        role: 'user',
+        content: `Extract the recipe from this webpage. URL: ${url}\n\nContent:\n${plain}`,
+      }];
     }
 
-    // Convert Anthropic-style body to Gemini format
-    const systemPrompt = body.system || '';
-    const userMessage = body.userMessage || (body.messages?.[0]?.content) || '';
+    // Build OpenRouter request (OpenAI-compatible format)
+    const messages = [];
+    if (body.system) {
+      messages.push({ role: 'system', content: body.system });
+    }
+    if (body.messages) {
+      messages.push(...body.messages);
+    }
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
-          contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-          generationConfig: { maxOutputTokens: 2000, temperature: 0.7 },
-        }),
-      }
-    );
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://smart-meal-planner-3mhs.vercel.app',
+        'X-Title': 'Smart Meal Planner',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        max_tokens: 2000,
+        temperature: 0.7,
+      }),
+    });
 
-    const geminiData = await geminiRes.json();
+    const data = await response.json();
 
-    // Convert Gemini response to Anthropic-compatible format
-    const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // Convert to Anthropic-compatible format our frontend expects
+    const text = data.choices?.[0]?.message?.content || '';
     return res.status(200).json({
       content: [{ type: 'text', text }],
     });
