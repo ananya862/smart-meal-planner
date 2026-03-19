@@ -96,8 +96,8 @@ export default function App() {
       </header>
 
       {/* View content */}
-      <main className="scroll-container safe-bottom" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 0' }}>
-        <div className="fade-in" key={tab}>
+      <main className="scroll-container" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 0' }}>
+        <div className="fade-in safe-bottom" key={tab}>
           {tab === 'planner'   && <PlannerView   mealPlan={mealPlan} recipes={recipes} onRemoveMeal={onRemoveMeal} onAddRecipeToMeal={onAddRecipeToMeal} settings={settings} activeMealTypes={settings.activeMealTypes || ['Breakfast','Lunch','Dinner','Snack']} />}
           {tab === 'recipes'   && <RecipesView   recipes={recipes} setRecipes={setRecipes} pantry={pantry} settings={settings} />}
           {tab === 'grocery'   && <GroceryView   mealPlan={mealPlan} recipes={recipes} pantry={pantry} activeMealTypes={settings.activeMealTypes || ['Breakfast','Lunch','Dinner','Snack']} />}
