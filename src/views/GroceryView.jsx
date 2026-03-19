@@ -43,8 +43,6 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
 
   const total = Object.keys(groceryList).length;
   const checkedCount = Object.values(checked).filter(Boolean).length;
-  const progress = total > 0 ? (checkedCount / total) * 100 : 0;
-
   const toggle = (key, item) => {
     const nowChecked = !checked[key];
     setChecked(prev => ({ ...prev, [key]: nowChecked }));
@@ -91,40 +89,25 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
           <h2 style={{ fontSize: 26 }}>Grocery List</h2>
           <p style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
-            {checkedCount}/{total} items checked
+            {total - checkedCount === 0
+              ? 'All done — happy shopping! 🎉'
+              : `${total - checkedCount} item${total - checkedCount !== 1 ? 's' : ''} left`
+            }
           </p>
         </div>
         {checkedCount > 0 && (
           <button
             onClick={() => setChecked({})}
-            style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline', marginTop: 6 }}
+            style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}
           >
             Reset
           </button>
         )}
       </div>
-
-      {/* Progress */}
-      <div style={{ background: 'var(--border)', borderRadius: 20, height: 8, marginBottom: 24, overflow: 'hidden' }}>
-        <div style={{
-          background: 'var(--accent)', height: '100%', borderRadius: 20,
-          width: `${progress}%`, transition: 'width 0.4s ease',
-        }} />
-      </div>
-
-      {progress === 100 && (
-        <div style={{
-          background: 'var(--accent-light)', border: '1px solid var(--accent)',
-          borderRadius: 14, padding: '14px 18px', marginBottom: 20,
-          display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, color: 'var(--accent)', fontWeight: 500,
-        }}>
-          <Icon name="check" size={18} /> All items checked — happy shopping!
-        </div>
-      )}
 
       {/* Categories */}
       {CATEGORIES.filter(cat => byCategory[cat]).map(cat => (
