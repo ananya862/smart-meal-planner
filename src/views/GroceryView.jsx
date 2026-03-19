@@ -45,7 +45,6 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const checkedCount = Object.values(checked).filter(Boolean).length;
   const toggle = (key, item) => {
     const nowChecked = !checked[key];
-    setChecked(prev => ({ ...prev, [key]: nowChecked }));
 
     if (nowChecked) {
       // Add to pantry if not already there
@@ -99,14 +98,6 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
             }
           </p>
         </div>
-        {checkedCount > 0 && (
-          <button
-            onClick={() => setChecked({})}
-            style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}
-          >
-            Reset
-          </button>
-        )}
       </div>
 
       {/* Categories */}
