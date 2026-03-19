@@ -2,20 +2,56 @@ import React from 'react';
 import { DAYS, MEAL_TYPES, slotIds } from '../data.js';
 import { Empty } from '../components/UI.jsx';
 
-export default function NutritionView({ mealPlan, recipes, activeMealTypes }) {
+export default function NutritionView({ mealPlan, recipes, activeMealTypes, pantry }) {
   const weeklyData = DAYS.map(day => {
     const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, sugar: 0 };
     const activeTypes = activeMealTypes || MEAL_TYPES;
     activeTypes.forEach(type => {
       slotIds(mealPlan[`${day}_${type}`]).forEach(id => {
         const r = recipes.find(x => x.id === id);
-        if (r) {
-          totals.calories += r.calories;
-          totals.protein  += r.protein;
-          totals.carbs    += r.carbs;
-          totals.fat      += r.fat;
-          totals.sugar    += r.sugar || 0;
+        if (!r) return;
+
+        // Use recipe values if set, otherwise derive from pantry ingredient data
+        const recipeHasNutrition = r.calories > 0;
+        let finalNutrition = {
+          calories: r.calories || 0,
+          protein:  r.protein  || 0,
+          carbs:    r.carbs    || 0,
+          fat:      r.fat      || 0,
+          sugar:    r.sugar    || 0,
+        };
+
+        if (!recipeHasNutrition && pantry && pantry.length > 0) {
+          // Recipe has no nutrition set — derive entirely from pantry items
+          let derivedCal = 0, derivedProtein = 0, derivedCarbs = 0, derivedFat = 0, derivedSugar = 0;
+          r.ingredients.forEach(ing => {
+            const pantryItem = pantry.find(p =>
+              p.name.toLowerCase() === ing.name.toLowerCase() && p.nutrition
+            );
+            if (pantryItem?.nutrition) {
+              // Scale by ingredient qty relative to pantry qty
+              const ratio = (ing.qty || 1) / (pantryItem.qty || 1);
+              derivedCal     += (pantryItem.nutrition.calories || 0) * ratio;
+              derivedProtein += (pantryItem.nutrition.protein  || 0) * ratio;
+              derivedCarbs   += (pantryItem.nutrition.carbs    || 0) * ratio;
+              derivedFat     += (pantryItem.nutrition.fat      || 0) * ratio;
+              derivedSugar   += (pantryItem.nutrition.sugar    || 0) * ratio;
+            }
+          });
+          finalNutrition = {
+            calories: Math.round(derivedCal),
+            protein:  Math.round(derivedProtein),
+            carbs:    Math.round(derivedCarbs),
+            fat:      Math.round(derivedFat),
+            sugar:    Math.round(derivedSugar),
+          };
         }
+
+        totals.calories += finalNutrition.calories;
+        totals.protein  += finalNutrition.protein;
+        totals.carbs    += finalNutrition.carbs;
+        totals.fat      += finalNutrition.fat;
+        totals.sugar    += finalNutrition.sugar;
       });
     });
     return { day: day.slice(0, 3), ...totals };
