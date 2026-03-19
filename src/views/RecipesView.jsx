@@ -10,7 +10,7 @@ const BLANK_FORM = {
   ingredients: '', steps: '',
 };
 
-export default function RecipesView({ recipes, setRecipes, pantry }) {
+export default function RecipesView({ recipes, setRecipes, pantry, settings }) {
   const [showAI, setShowAI] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -136,7 +136,7 @@ export default function RecipesView({ recipes, setRecipes, pantry }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {filtered.length === 0
           ? <Empty emoji="🍽️" title="No recipes found" subtitle="Try a different search or add a new recipe." />
-          : filtered.map(r => <RecipeCard key={r.id} recipe={r} onDelete={handleDelete} />)
+          : filtered.map(r => <RecipeCard key={r.id} recipe={r} onDelete={handleDelete} settings={settings} />)
         }
       </div>
 

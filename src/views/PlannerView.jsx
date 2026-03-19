@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DAYS, MEAL_TYPES, MEAL_TYPE_COLORS, slotIds } from '../data.js';
+import { checkRecipe } from '../utils/dietaryCheck.js';
 import { Icon, Empty } from '../components/UI.jsx';
 
 export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddRecipeToMeal, settings, activeMealTypes }) {
@@ -15,28 +16,32 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
   const [pickingFor, setPickingFor]   = useState(null); // { day, type }
   const [detailFor, setDetailFor]     = useState(null); // { day, type, meal, index }
   const [confirming, setConfirming]   = useState(false);
+  const [applyDietary, setApplyDietary] = useState(true);
+  const [clearConfirm, setClearConfirm] = useState(false);
+
+  const clearWeek = () => {
+    DAYS.forEach(day => activeMT.forEach(type => onRemoveMeal(`${day}_${type}`)));
+    setClearConfirm(false);
+  };
   const [selectedMealTypes, setSelectedMealTypes] = useState(['Breakfast','Lunch','Dinner','Snack']);
 
   // Randomly generate a full week plan
   const GENERATED_MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner'];
   const generateWeekPlan = () => {
     if (recipes.length === 0) return;
-    const mealsPerSlot = settings.mealsPerDay || 1;
+    // Filter out recipes that conflict with settings (only if applyDietary is on)
+    const safeRecipes = applyDietary ? recipes.filter(r => !checkRecipe(r, settings).hasIssue) : recipes;
+    const pool = safeRecipes.length > 0 ? safeRecipes : recipes;
     const newPlan = {};
     DAYS.forEach(day => {
-      GENERATED_MEAL_TYPES.forEach(type => {
-        const preferred = recipes.filter(r => r.tags.some(t => t.toLowerCase() === type.toLowerCase()));
-        const pool = preferred.length > 0 ? preferred : recipes;
-        // Pick mealsPerSlot unique recipes (shuffle & slice)
-        const shuffled = [...pool].sort(() => Math.random() - 0.5);
-        const picks = shuffled.slice(0, Math.min(mealsPerSlot, shuffled.length));
-        newPlan[`${day}_${type}`] = picks.map(r => r.id);
+      selectedMealTypes.forEach(type => {
+        const preferred = pool.filter(r => r.tags.some(t => t.toLowerCase() === type.toLowerCase()));
+        const typePool = preferred.length > 0 ? preferred : pool;
+        const shuffled = [...typePool].sort(() => Math.random() - 0.5);
+        newPlan[`${day}_${type}`] = [shuffled[0].id];
       });
-      // Clear snack slot
-      onRemoveMeal(`${day}_Snack`);
     });
-    // Clear old plan then apply new
-    DAYS.forEach(day => GENERATED_MEAL_TYPES.forEach(type => onRemoveMeal(`${day}_${type}`)));
+    DAYS.forEach(day => activeMT.forEach(type => onRemoveMeal(`${day}_${type}`)));
     Object.entries(newPlan).forEach(([key, val]) => onAddRecipeToMeal(key, val));
     setConfirming(false);
   };
@@ -149,7 +154,7 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
         <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 4px' }}>
           <div style={{ width:36, height:4, borderRadius:2, background:'var(--border2)' }} />
         </div>
-        <div style={{ padding:'8px 20px 20px' }}>
+        <div style={{ padding:'8px 20px 32px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
             <div>
               <span style={{
@@ -162,6 +167,19 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
               <Icon name="x" size={20} />
             </button>
           </div>
+          {(() => {
+            const { hasIssue, allergens, avoided, dietaryFlags } = checkRecipe(detailFor.meal, settings);
+            return hasIssue ? (
+              <div style={{ padding:'10px 12px', background:'var(--red-light)', borderRadius:10, marginBottom:14 }}>
+                <p style={{ fontSize:12, color:'var(--red)', fontWeight:700, marginBottom:6 }}>⚠ Dietary conflict</p>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                  {allergens.map(a => <span key={a} style={{ fontSize:11, color:'var(--red)', fontWeight:600, background:'rgba(192,57,43,0.12)', borderRadius:4, padding:'2px 7px' }}>Allergen: {a}</span>)}
+                  {avoided.map(a => <span key={a} style={{ fontSize:11, color:'var(--amber)', fontWeight:600, background:'rgba(184,110,0,0.1)', borderRadius:4, padding:'2px 7px' }}>Avoid: {a}</span>)}
+                  {dietaryFlags.map(f => <span key={f} style={{ fontSize:11, color:'var(--amber)', fontWeight:600, background:'rgba(184,110,0,0.1)', borderRadius:4, padding:'2px 7px' }}>{f}</span>)}
+                </div>
+              </div>
+            ) : null;
+          })()}
           <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
             {[
               ['Calories', detailFor.meal.calories, 'var(--amber)'],
@@ -188,14 +206,14 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
   // ── CALENDAR VIEW ─────────────────────────────────────────────────────────
   const CalendarView = () => (
     <div>
-      <div style={{ display:'flex', gap:10, marginBottom:18 }}>
-        <div style={{ flex:1, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:'12px 16px' }}>
-          <p style={{ fontSize:11, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:4 }}>Meals planned</p>
-          <p style={{ fontSize:22, fontWeight:700, color:'var(--accent)', fontFamily:'Playfair Display, serif' }}>{mealsCount}</p>
+      <div style={{ display:'flex', gap:8, marginBottom:18 }}>
+        <div style={{ flex:1, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'10px 14px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <p style={{ fontSize:12, color:'var(--text3)' }}>Meals planned</p>
+          <p style={{ fontSize:18, fontWeight:700, color:'var(--accent)' }}>{mealsCount}</p>
         </div>
-        <div style={{ flex:1, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:'12px 16px' }}>
-          <p style={{ fontSize:11, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:4 }}>Avg calories/day</p>
-          <p style={{ fontSize:22, fontWeight:700, color:'var(--amber)', fontFamily:'Playfair Display, serif' }}>{avgCalories.toLocaleString()}</p>
+        <div style={{ flex:1, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'10px 14px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <p style={{ fontSize:12, color:'var(--text3)' }}>Avg cal/day</p>
+          <p style={{ fontSize:18, fontWeight:700, color:'var(--amber)' }}>{avgCalories.toLocaleString()}</p>
         </div>
       </div>
 
@@ -231,20 +249,27 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
                   return (
                     <div key={day} style={{ minHeight:72, borderRadius:10, overflow:'hidden', display:'flex', flexDirection:'column', gap:2 }}>
                       {/* Existing recipe chips */}
-                      {meals.map((meal, idx) => (
-                        <button key={idx}
-                          onClick={() => setDetailFor({ day, type, meal, index: idx })}
-                          style={{
-                            width:'100%', flex:1, background:bg,
-                            border:`1.5px solid ${color}44`, borderRadius: meals.length === 1 ? 10 : idx === 0 ? '10px 10px 4px 4px' : idx === meals.length-1 ? '4px 4px 10px 10px' : 4,
-                            padding:'4px 5px', display:'flex', flexDirection:'column',
-                            alignItems:'flex-start', justifyContent:'center',
-                            textAlign:'left', cursor:'pointer', minHeight:28,
-                          }}
-                        >
-                          <span style={{ fontSize:8, fontWeight:700, color, lineHeight:1.3, wordBreak:'break-word', display:'block' }}>{meal.name}</span>
-                        </button>
-                      ))}
+                      {meals.map((meal, idx) => {
+                        const { hasIssue } = checkRecipe(meal, settings);
+                        return (
+                          <button key={idx}
+                            onClick={() => setDetailFor({ day, type, meal, index: idx })}
+                            style={{
+                              width:'100%', flex:1,
+                              background: hasIssue ? 'var(--red-light)' : bg,
+                              border: hasIssue ? '1.5px solid var(--red)' : `1.5px solid ${color}44`,
+                              borderRadius: meals.length === 1 ? 10 : idx === 0 ? '10px 10px 4px 4px' : idx === meals.length-1 ? '4px 4px 10px 10px' : 4,
+                              padding:'4px 5px', display:'flex', flexDirection:'column',
+                              alignItems:'flex-start', justifyContent:'center',
+                              textAlign:'left', cursor:'pointer', minHeight:28,
+                            }}
+                          >
+                            <span style={{ fontSize:8, fontWeight:700, color: hasIssue ? 'var(--red)' : color, lineHeight:1.3, wordBreak:'break-word', display:'block' }}>
+                              {hasIssue ? '⚠ ' : ''}{meal.name}
+                            </span>
+                          </button>
+                        );
+                      })}
                       {/* Add button */}
                       <button
                         onClick={() => setPickingFor({ day, type })}
@@ -391,9 +416,9 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={{ paddingTop: 4, paddingBottom: 32 }}>
-      {/* View toggle */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20, gap:10 }}>
-        <h2 style={{ fontSize:22, fontFamily:'Playfair Display, serif', flexShrink:0 }}>
+      {/* View toggle — row 1: title + week/day toggle */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10, gap:10 }}>
+        <h2 style={{ fontSize:22, fontFamily:'Playfair Display, serif' }}>
           {view === 'calendar' ? 'Weekly Plan' : selectedDay}
         </h2>
         <div style={{ display:'flex', background:'var(--surface2)', borderRadius:12, padding:3, gap:2 }}>
@@ -407,14 +432,43 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setConfirming(true)}
-          style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 12px', borderRadius:10, fontSize:12, fontWeight:600, background:'var(--accent)', color:'#fff', flexShrink:0 }}
-        >
+      </div>
+      {/* Row 2: Clear + Generate */}
+      <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+        <button onClick={() => setClearConfirm(true)}
+          style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'9px', borderRadius:10, fontSize:13, fontWeight:600, background:'var(--red-light)', color:'var(--red)', border:'none' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          Clear week
+        </button>
+        <button onClick={() => setConfirming(true)}
+          style={{ flex:2, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'9px', borderRadius:10, fontSize:13, fontWeight:600, background:'var(--accent)', color:'#fff', border:'none' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-          Generate
+          Generate week
         </button>
       </div>
+
+      {/* Clear week confirm */}
+      {clearConfirm && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}
+          onClick={e => { if (e.target === e.currentTarget) setClearConfirm(false); }}>
+          <div className="slide-up" style={{ background:'var(--surface)', borderRadius:20, padding:24, maxWidth:320, width:'100%', boxShadow:'var(--shadow-lg)' }}>
+            <h2 style={{ fontSize:20, marginBottom:8 }}>Clear week?</h2>
+            <p style={{ fontSize:14, color:'var(--text2)', marginBottom:24 }}>
+              This will remove all meals from the current week plan. This cannot be undone.
+            </p>
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => setClearConfirm(false)}
+                style={{ flex:1, padding:'12px', borderRadius:12, border:'1.5px solid var(--border)', fontWeight:600, fontSize:14, background:'var(--surface)' }}>
+                Cancel
+              </button>
+              <button onClick={clearWeek}
+                style={{ flex:1, padding:'12px', borderRadius:12, background:'var(--red)', color:'#fff', fontWeight:600, fontSize:14, border:'none' }}>
+                Clear all
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Generate plan dialog */}
       {confirming && (
@@ -461,10 +515,31 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
               }
             </p>
             {settings && ((settings.allergies||[]).length > 0 || (settings.avoid||[]).length > 0 || settings.vegetarian || settings.vegan || settings.glutenFree || settings.dairyFree) && (
-              <div style={{ display:'flex', alignItems:'center', gap:6, background:'var(--accent-light)', borderRadius:10, padding:'8px 12px', marginBottom:16 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <span style={{ fontSize:12, color:'var(--accent)', fontWeight:500 }}>Your dietary settings will be applied</span>
-              </div>
+              <button
+                onClick={() => setApplyDietary(!applyDietary)}
+                style={{
+                  display:'flex', alignItems:'center', gap:10, width:'100%',
+                  padding:'10px 12px', borderRadius:12, marginBottom:16, cursor:'pointer',
+                  background: applyDietary ? 'var(--accent-light)' : 'var(--surface2)',
+                  border: `1.5px solid ${applyDietary ? 'var(--accent)' : 'var(--border)'}`,
+                  transition:'all 0.15s',
+                }}
+              >
+                <div style={{
+                  width:20, height:20, borderRadius:6, flexShrink:0,
+                  border: `2px solid ${applyDietary ? 'var(--accent)' : 'var(--border2)'}`,
+                  background: applyDietary ? 'var(--accent)' : 'transparent',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                }}>
+                  {applyDietary && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+                <div style={{ textAlign:'left' }}>
+                  <p style={{ fontSize:13, fontWeight:600, color: applyDietary ? 'var(--accent)' : 'var(--text2)' }}>Apply dietary settings</p>
+                  <p style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>
+                    {applyDietary ? 'Restricted recipes will be excluded' : 'All recipes will be included'}
+                  </p>
+                </div>
+              </button>
             )}
 
             <div style={{ display:'flex', gap:10 }}>

@@ -1,20 +1,43 @@
 import React, { useState } from 'react';
+import { checkRecipe } from '../utils/dietaryCheck.js';
 import { Icon, Tag, MacroBar, Btn } from './UI.jsx';
 
-export default function RecipeCard({ recipe, onAddToMeal, onDelete, compact }) {
+export default function RecipeCard({ recipe, onAddToMeal, onDelete, compact, settings }) {
   const [expanded, setExpanded] = useState(false);
+
+  const { hasIssue, allergens, avoided, dietaryFlags } = checkRecipe(recipe, settings);
 
   return (
     <div
       className="fade-in"
       style={{
         background: 'var(--surface)',
-        border: '1px solid var(--border)',
+        border: `1px solid ${hasIssue ? 'var(--red)' : 'var(--border)'}`,
         borderRadius: 16,
         padding: compact ? '12px 14px' : '16px',
         transition: 'box-shadow 0.2s',
       }}
     >
+      {hasIssue && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:10, padding:'7px 10px', background:'var(--red-light)', borderRadius:8 }}>
+          <span style={{ fontSize:11, color:'var(--red)', marginRight:2 }}>⚠</span>
+          {allergens.map(a => (
+            <span key={a} style={{ fontSize:11, color:'var(--red)', fontWeight:600, background:'rgba(192,57,43,0.12)', borderRadius:4, padding:'1px 6px' }}>
+              Allergen: {a}
+            </span>
+          ))}
+          {avoided.map(a => (
+            <span key={a} style={{ fontSize:11, color:'var(--amber)', fontWeight:600, background:'rgba(184,110,0,0.1)', borderRadius:4, padding:'1px 6px' }}>
+              Avoid: {a}
+            </span>
+          ))}
+          {dietaryFlags.map(f => (
+            <span key={f} style={{ fontSize:11, color:'var(--amber)', fontWeight:600, background:'rgba(184,110,0,0.1)', borderRadius:4, padding:'1px 6px' }}>
+              {f}
+            </span>
+          ))}
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3 style={{ fontSize: compact ? 15 : 17, marginBottom: 4, fontFamily: 'Playfair Display, serif' }}>
