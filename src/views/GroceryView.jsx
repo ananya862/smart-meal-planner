@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { CATEGORIES, guessCategory, slotIds } from '../data.js';
 import { Icon, Btn, Empty } from '../components/UI.jsx';
 
-export default function GroceryView({ mealPlan, recipes, pantry, activeMealTypes }) {
+export default function GroceryView({ mealPlan, recipes, pantry, setPantry, activeMealTypes }) {
   const [checked, setChecked] = useState({});
 
   const groceryList = useMemo(() => {
@@ -45,7 +45,40 @@ export default function GroceryView({ mealPlan, recipes, pantry, activeMealTypes
   const checkedCount = Object.values(checked).filter(Boolean).length;
   const progress = total > 0 ? (checkedCount / total) * 100 : 0;
 
-  const toggle = (key) => setChecked(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggle = (key, item) => {
+    const nowChecked = !checked[key];
+    setChecked(prev => ({ ...prev, [key]: nowChecked }));
+
+    if (nowChecked) {
+      // Add to pantry if not already there
+      const alreadyInPantry = pantry.some(p => p.name.toLowerCase() === key);
+      if (!alreadyInPantry) {
+        setPantry(prev => [...prev, {
+          id: Date.now(),
+          name: item.name,
+          qty: item.qty,
+          unit: item.unit,
+          category: item.category,
+        }]);
+      } else {
+        // Update quantity in pantry
+        setPantry(prev => prev.map(p =>
+          p.name.toLowerCase() === key
+            ? { ...p, qty: (parseFloat(p.qty) || 0) + item.qty }
+            : p
+        ));
+      }
+    } else {
+      // Uncheck — remove from pantry or reduce qty
+      setPantry(prev => {
+        return prev.map(p => {
+          if (p.name.toLowerCase() !== key) return p;
+          const newQty = (parseFloat(p.qty) || 0) - item.qty;
+          return newQty <= 0 ? null : { ...p, qty: Math.round(newQty * 10) / 10 };
+        }).filter(Boolean);
+      });
+    }
+  };
 
   if (total === 0) {
     return (
@@ -107,7 +140,7 @@ export default function GroceryView({ mealPlan, recipes, pantry, activeMealTypes
               return (
                 <button
                   key={i}
-                  onClick={() => toggle(key)}
+                  onClick={() => toggle(key, item)}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 14,
                     padding: '13px 16px', textAlign: 'left',
@@ -129,6 +162,11 @@ export default function GroceryView({ mealPlan, recipes, pantry, activeMealTypes
                     color: done ? 'var(--text3)' : 'var(--text)',
                     textDecoration: done ? 'line-through' : 'none',
                   }}>{item.name}</span>
+                  {done && (
+                    <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600, background: 'var(--accent-light)', borderRadius: 6, padding: '2px 7px', marginRight: 6 }}>
+                      + pantry
+                    </span>
+                  )}
                   <span style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500 }}>
                     {Number.isInteger(item.qty) ? item.qty : item.qty.toFixed(1)} {item.unit}
                   </span>

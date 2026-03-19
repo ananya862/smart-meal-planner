@@ -100,7 +100,7 @@ export default function App() {
         <div className="fade-in safe-bottom" key={tab}>
           {tab === 'planner'   && <PlannerView   mealPlan={mealPlan} recipes={recipes} onRemoveMeal={onRemoveMeal} onAddRecipeToMeal={onAddRecipeToMeal} settings={settings} activeMealTypes={settings.activeMealTypes || ['Breakfast','Lunch','Dinner','Snack']} />}
           {tab === 'recipes'   && <RecipesView   recipes={recipes} setRecipes={setRecipes} pantry={pantry} settings={settings} />}
-          {tab === 'grocery'   && <GroceryView   mealPlan={mealPlan} recipes={recipes} pantry={pantry} activeMealTypes={settings.activeMealTypes || ['Breakfast','Lunch','Dinner','Snack']} />}
+          {tab === 'grocery'   && <GroceryView   mealPlan={mealPlan} recipes={recipes} pantry={pantry} setPantry={setPantry} activeMealTypes={settings.activeMealTypes || ['Breakfast','Lunch','Dinner','Snack']} />}
           {tab === 'pantry'    && <PantryView    pantry={pantry} setPantry={setPantry} />}
           {tab === 'nutrition' && <NutritionView mealPlan={mealPlan} recipes={recipes} activeMealTypes={settings.activeMealTypes || ['Breakfast','Lunch','Dinner','Snack']} />}
         </div>
