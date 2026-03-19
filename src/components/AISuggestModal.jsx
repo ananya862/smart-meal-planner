@@ -24,9 +24,13 @@ export default function AISuggestModal({ onClose, onAdd, pantry }) {
         }),
       });
       const data = await res.json();
+      if (data.error) throw new Error(data.error);
       const text = data.content?.map(b => b.text || '').join('') || '';
       const clean = text.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
+      // Find JSON array even if there's surrounding text
+      const jsonMatch = clean.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error('No JSON found in response');
+      const parsed = JSON.parse(jsonMatch[0]);
       setResults(parsed.map((r, i) => ({ ...r, id: Date.now() + i })));
     } catch {
       setError('Could not generate suggestions. Please try again.');
