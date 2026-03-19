@@ -85,23 +85,38 @@ export default defineConfig(({ mode }) => {
                 body.messages = [{ role: 'user', content: `Extract the recipe from this webpage. URL: ${url}\n\nPage content:\n${plain}` }];
               }
 
-              // Call Gemini
-              const systemPrompt = body.system || '';
-              const userMessage = body.userMessage || (body.messages?.[0]?.content) || '';
-              const apiRes = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`,
-                {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    system_instruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
-                    contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-                    generationConfig: { maxOutputTokens: 2000, temperature: 0.7 },
-                  }),
-                }
-              );
-              const geminiData = await apiRes.json();
-              const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              // Call OpenRouter
+              const messages = [];
+              if (body.system) messages.push({ role: 'system', content: body.system });
+              if (body.messages) messages.push(...body.messages);
+
+              const apiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+                                  },
+                body: JSON.stringify({
+                  model: 'llama-3.3-70b-versatile',
+                  messages,
+                  max_tokens: 2000,
+                  temperature: 0.7,
+                }),
+              });
+              const orData = await apiRes.json();
+              // Handle error from OpenRouter
+              if (orData.error) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: orData.error.message || JSON.stringify(orData.error) }));
+                return;
+              }
+              const choice = orData.choices?.[0];
+              const text = choice?.message?.content || choice?.text || '';
+              if (!text) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Model returned empty response. Try again.' }));
+                return;
+              }
               const data = { content: [{ type: 'text', text }] };
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify(data));
