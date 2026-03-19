@@ -1,8 +1,6 @@
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '2mb',
-    },
+    bodyParser: { sizeLimit: '2mb' },
   },
 };
 
@@ -14,18 +12,14 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
 
   try {
     let body = req.body;
+    if (typeof body === 'string') body = JSON.parse(body);
 
-    // If body came in as a string, parse it
-    if (typeof body === 'string') {
-      body = JSON.parse(body);
-    }
-
-    // If fetchUrl provided, fetch the page server-side
+    // Handle fetchUrl - fetch page server-side
     if (body.fetchUrl) {
       const url = body.fetchUrl;
       const { fetchUrl, ...rest } = body;
@@ -47,24 +41,33 @@ export default async function handler(req, res) {
         .trim()
         .slice(0, 8000);
 
-      body.messages = [{
-        role: 'user',
-        content: `Extract the recipe from this webpage. URL: ${url}\n\nContent:\n${plain}`,
-      }];
+      body.userMessage = `Extract the recipe from this webpage. URL: ${url}\n\nContent:\n${plain}`;
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(body),
-    });
+    // Convert Anthropic-style body to Gemini format
+    const systemPrompt = body.system || '';
+    const userMessage = body.userMessage || (body.messages?.[0]?.content) || '';
 
-    const data = await response.json();
-    return res.status(response.status).json(data);
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
+          contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+          generationConfig: { maxOutputTokens: 2000, temperature: 0.7 },
+        }),
+      }
+    );
+
+    const geminiData = await geminiRes.json();
+
+    // Convert Gemini response to Anthropic-compatible format
+    const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return res.status(200).json({
+      content: [{ type: 'text', text }],
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

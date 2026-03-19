@@ -85,18 +85,25 @@ export default defineConfig(({ mode }) => {
                 body.messages = [{ role: 'user', content: `Extract the recipe from this webpage. URL: ${url}\n\nPage content:\n${plain}` }];
               }
 
-              // Call Anthropic
-              const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'x-api-key': env.ANTHROPIC_API_KEY,
-                  'anthropic-version': '2023-06-01',
-                },
-                body: JSON.stringify(body),
-              });
-              const data = await apiRes.json();
-              res.writeHead(apiRes.status, { 'Content-Type': 'application/json' });
+              // Call Gemini
+              const systemPrompt = body.system || '';
+              const userMessage = body.userMessage || (body.messages?.[0]?.content) || '';
+              const apiRes = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    system_instruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
+                    contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+                    generationConfig: { maxOutputTokens: 2000, temperature: 0.7 },
+                  }),
+                }
+              );
+              const geminiData = await apiRes.json();
+              const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              const data = { content: [{ type: 'text', text }] };
+              res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify(data));
             } catch (err) {
               res.writeHead(500, { 'Content-Type': 'application/json' });
