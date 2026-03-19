@@ -12,7 +12,7 @@ export const MEAL_TYPE_COLORS = {
 export const SAMPLE_RECIPES = [
   {
     id: 1, name: 'Avocado Toast', servings: 2, prepTime: 5, cookTime: 5,
-    tags: ['breakfast','vegan','quick'], calories: 320, protein: 10, carbs: 34, fat: 18,
+    tags: ['breakfast','vegan','quick'], calories: 320, protein: 10, carbs: 34, fat: 18, sugar: 2,
     ingredients: [
       { name: 'sourdough bread', qty: 2, unit: 'slices' },
       { name: 'avocado', qty: 1, unit: 'whole' },
@@ -23,7 +23,7 @@ export const SAMPLE_RECIPES = [
   },
   {
     id: 2, name: 'Chicken Stir Fry', servings: 2, prepTime: 10, cookTime: 15,
-    tags: ['dinner','high-protein','asian'], calories: 480, protein: 42, carbs: 28, fat: 18,
+    tags: ['dinner','high-protein','asian'], calories: 480, protein: 42, carbs: 28, fat: 18, sugar: 6,
     ingredients: [
       { name: 'chicken breast', qty: 300, unit: 'g' },
       { name: 'soy sauce', qty: 2, unit: 'tbsp' },
@@ -35,7 +35,7 @@ export const SAMPLE_RECIPES = [
   },
   {
     id: 3, name: 'Greek Salad', servings: 2, prepTime: 10, cookTime: 0,
-    tags: ['lunch','vegetarian','quick'], calories: 280, protein: 8, carbs: 16, fat: 22,
+    tags: ['lunch','vegetarian','quick'], calories: 280, protein: 8, carbs: 16, fat: 22, sugar: 8,
     ingredients: [
       { name: 'cucumber', qty: 1, unit: 'whole' },
       { name: 'tomatoes', qty: 3, unit: 'whole' },
@@ -47,7 +47,7 @@ export const SAMPLE_RECIPES = [
   },
   {
     id: 4, name: 'Overnight Oats', servings: 1, prepTime: 5, cookTime: 0,
-    tags: ['breakfast','vegan','quick'], calories: 380, protein: 12, carbs: 62, fat: 10,
+    tags: ['breakfast','vegan','quick'], calories: 380, protein: 12, carbs: 62, fat: 10, sugar: 18,
     ingredients: [
       { name: 'rolled oats', qty: 80, unit: 'g' },
       { name: 'almond milk', qty: 200, unit: 'ml' },
@@ -59,7 +59,7 @@ export const SAMPLE_RECIPES = [
   },
   {
     id: 5, name: 'Baked Salmon & Veg', servings: 2, prepTime: 10, cookTime: 20,
-    tags: ['dinner','high-protein','healthy'], calories: 520, protein: 48, carbs: 22, fat: 26,
+    tags: ['dinner','high-protein','healthy'], calories: 520, protein: 48, carbs: 22, fat: 26, sugar: 7,
     ingredients: [
       { name: 'salmon fillets', qty: 300, unit: 'g' },
       { name: 'sweet potato', qty: 1, unit: 'whole' },
@@ -71,7 +71,7 @@ export const SAMPLE_RECIPES = [
   },
   {
     id: 6, name: 'Red Lentil Soup', servings: 4, prepTime: 10, cookTime: 30,
-    tags: ['lunch','vegan','high-protein'], calories: 320, protein: 18, carbs: 52, fat: 6,
+    tags: ['lunch','vegan','high-protein'], calories: 320, protein: 18, carbs: 52, fat: 6, sugar: 5,
     ingredients: [
       { name: 'red lentils', qty: 200, unit: 'g' },
       { name: 'onion', qty: 1, unit: 'whole' },
@@ -92,14 +92,20 @@ export const SAMPLE_PANTRY = [
 ];
 
 export const SAMPLE_MEAL_PLAN = {
-  'Monday_Breakfast': 4,
-  'Monday_Dinner': 2,
-  'Tuesday_Lunch': 3,
-  'Wednesday_Dinner': 5,
-  'Thursday_Breakfast': 1,
-  'Friday_Lunch': 6,
-  'Saturday_Dinner': 5,
-  'Sunday_Breakfast': 4,
+  'Monday_Breakfast': [4],
+  'Monday_Dinner': [2],
+  'Tuesday_Lunch': [3],
+  'Wednesday_Dinner': [5],
+  'Thursday_Breakfast': [1],
+  'Friday_Lunch': [6],
+  'Saturday_Dinner': [5],
+  'Sunday_Breakfast': [4],
+};
+
+// Helper: ensure slot value is always an array (handles legacy single-id format)
+export const slotIds = (val) => {
+  if (!val) return [];
+  return Array.isArray(val) ? val : [val];
 };
 
 export const guessCategory = (name) => {

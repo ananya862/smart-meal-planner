@@ -84,6 +84,13 @@ export const Icon = ({ name, size = 18 }) => {
         <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
       </svg>
     ),
+    import: (
+      <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    ),
     share: (
       <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
@@ -124,7 +131,7 @@ export const MacroBar = ({ recipe }) => (
 );
 
 // ── Bottom sheet modal ─────────────────────────────────────────────────────
-export const BottomSheet = ({ onClose, title, children, fullHeight }) => (
+export const BottomSheet = ({ onClose, title, children, fullHeight, stickyFooter }) => (
   <div
     style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
@@ -139,7 +146,6 @@ export const BottomSheet = ({ onClose, title, children, fullHeight }) => (
         borderRadius: '20px 20px 0 0',
         maxHeight: fullHeight ? '95dvh' : '80dvh',
         display: 'flex', flexDirection: 'column',
-        paddingBottom: 'calc(var(--safe-bottom) + 16px)',
       }}
     >
       {/* Handle */}
@@ -164,6 +170,17 @@ export const BottomSheet = ({ onClose, title, children, fullHeight }) => (
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
         {children}
       </div>
+      {/* Sticky footer */}
+      {stickyFooter && (
+        <div style={{
+          padding: '12px 20px',
+          paddingBottom: 'calc(var(--safe-bottom) + 12px)',
+          borderTop: '1px solid var(--border)',
+          background: 'var(--surface)',
+        }}>
+          {stickyFooter}
+        </div>
+      )}
     </div>
   </div>
 );

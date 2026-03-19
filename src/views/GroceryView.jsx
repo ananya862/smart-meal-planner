@@ -1,21 +1,24 @@
 import React, { useState, useMemo } from 'react';
-import { CATEGORIES, guessCategory } from '../data.js';
+import { CATEGORIES, guessCategory, slotIds } from '../data.js';
 import { Icon, Btn, Empty } from '../components/UI.jsx';
 
-export default function GroceryView({ mealPlan, recipes, pantry }) {
+export default function GroceryView({ mealPlan, recipes, pantry, activeMealTypes }) {
   const [checked, setChecked] = useState({});
 
   const groceryList = useMemo(() => {
     const needed = {};
-    Object.values(mealPlan).forEach(recipeId => {
-      const recipe = recipes.find(r => r.id === recipeId);
-      if (!recipe) return;
-      recipe.ingredients.forEach(ing => {
+    const activeTypes = activeMealTypes || ['Breakfast','Lunch','Dinner','Snack'];
+    Object.entries(mealPlan).filter(([key]) => activeTypes.includes(key.split('_')[1])).forEach(([, val]) => {
+      slotIds(val).forEach(recipeId => {
+        const recipe = recipes.find(r => r.id === recipeId);
+        if (!recipe) return;
+        recipe.ingredients.forEach(ing => {
         const key = ing.name.toLowerCase().trim();
         if (!needed[key]) {
           needed[key] = { name: ing.name, qty: 0, unit: ing.unit, category: guessCategory(ing.name) };
         }
-        needed[key].qty += Number(ing.qty) || 0;
+          needed[key].qty += Number(ing.qty) || 0;
+        });
       });
     });
     // subtract pantry

@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import RecipeCard from '../components/RecipeCard.jsx';
 import AISuggestModal from '../components/AISuggestModal.jsx';
+import ImportRecipeModal from '../components/ImportRecipeModal.jsx';
 import { Icon, Btn, Field, inputStyle, BottomSheet, Empty, Tag } from '../components/UI.jsx';
 
 const BLANK_FORM = {
   name: '', servings: 2, prepTime: 10, cookTime: 20, tags: '',
-  calories: 400, protein: 30, carbs: 40, fat: 15,
+  calories: 400, protein: 30, carbs: 40, fat: 15, sugar: 10,
   ingredients: '', steps: '',
 };
 
 export default function RecipesView({ recipes, setRecipes, pantry }) {
   const [showAI, setShowAI] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
@@ -44,6 +46,7 @@ export default function RecipesView({ recipes, setRecipes, pantry }) {
       protein: +form.protein || 20,
       carbs: +form.carbs || 40,
       fat: +form.fat || 15,
+      sugar: +form.sugar || 0,
       ingredients: form.ingredients.split('\n').filter(Boolean).map(line => {
         const parts = line.trim().split(' ');
         return { qty: parseFloat(parts[0]) || 1, unit: parts[1] || '', name: parts.slice(2).join(' ') };
@@ -57,12 +60,12 @@ export default function RecipesView({ recipes, setRecipes, pantry }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, gap: 10, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ fontSize: 26 }}>Recipes</h2>
           <p style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>{recipes.length} saved</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           <button
             onClick={() => setShowAI(true)}
             style={{
@@ -72,6 +75,16 @@ export default function RecipesView({ recipes, setRecipes, pantry }) {
             }}
           >
             <Icon name="sparkle" size={14} /> AI
+          </button>
+          <button
+            onClick={() => setShowImport(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px',
+              background: 'var(--blue-light)', color: 'var(--blue)', borderRadius: 12,
+              fontWeight: 600, fontSize: 13,
+            }}
+          >
+            <Icon name="import" size={14} /> Import
           </button>
           <button
             onClick={() => setShowForm(true)}
@@ -127,42 +140,74 @@ export default function RecipesView({ recipes, setRecipes, pantry }) {
         }
       </div>
 
-      {/* Add Recipe sheet */}
+      {/* Add Recipe popup */}
       {showForm && (
-        <BottomSheet onClose={() => setShowForm(false)} title="New Recipe" fullHeight>
-          <div style={{ paddingBottom: 32 }}>
-            <Field label="Recipe name">
-              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Chicken Stir Fry" style={inputStyle} />
-            </Field>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {[['Servings','servings'],['Prep time (min)','prepTime'],['Cook time (min)','cookTime'],['Calories','calories'],['Protein (g)','protein'],['Carbs (g)','carbs'],['Fat (g)','fat']].map(([label, key]) => (
-                <Field key={key} label={label}>
-                  <input type="number" value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} style={inputStyle} />
-                </Field>
-              ))}
+        <div
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:300, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'60px 16px 16px' }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowForm(false); setForm(BLANK_FORM); } }}
+        >
+          <div className="slide-up" style={{
+            background:'var(--surface)', borderRadius:20, width:'100%', maxWidth:520,
+            maxHeight:'88dvh', display:'flex', flexDirection:'column', boxShadow:'0 8px 40px rgba(0,0,0,0.18)',
+          }}>
+            {/* Header */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 20px 0' }}>
+              <h2 style={{ fontSize:20 }}>New Recipe</h2>
+              <button onClick={() => { setShowForm(false); setForm(BLANK_FORM); }}
+                style={{ width:32, height:32, borderRadius:'50%', background:'var(--surface2)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text2)' }}>
+                <Icon name="x" size={16} />
+              </button>
             </div>
-            <Field label="Tags (comma-separated)">
-              <input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })}
-                placeholder="dinner, vegan, quick" style={inputStyle} />
-            </Field>
-            <Field label="Ingredients (one per line: qty unit name)">
-              <textarea value={form.ingredients} onChange={e => setForm({ ...form, ingredients: e.target.value })}
-                rows={4} placeholder={"200 g chicken breast\n2 tbsp soy sauce"}
-                style={{ ...inputStyle, resize: 'vertical' }} />
-            </Field>
-            <Field label="Steps (one per line)">
-              <textarea value={form.steps} onChange={e => setForm({ ...form, steps: e.target.value })}
-                rows={4} placeholder={"Slice chicken\nHeat pan..."}
-                style={{ ...inputStyle, resize: 'vertical' }} />
-            </Field>
-            <Btn onClick={handleSubmit} fullWidth>Save Recipe</Btn>
+            {/* Scrollable content */}
+            <div style={{ flex:1, overflowY:'auto', padding:'16px 20px' }}>
+              <Field label="Recipe name">
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                  placeholder="e.g. Chicken Stir Fry" style={inputStyle} />
+              </Field>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                {[['Servings','servings'],['Prep time (min)','prepTime'],['Cook time (min)','cookTime'],['Calories','calories'],['Protein (g)','protein'],['Carbs (g)','carbs'],['Fat (g)','fat'],['Sugar (g)','sugar']].map(([label, key]) => (
+                  <Field key={key} label={label}>
+                    <input type="number" value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} style={inputStyle} />
+                  </Field>
+                ))}
+              </div>
+              <Field label="Tags (comma-separated)">
+                <input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })}
+                  placeholder="dinner, vegan, quick" style={inputStyle} />
+              </Field>
+              <Field label="Ingredients (one per line: qty unit name)">
+                <textarea value={form.ingredients} onChange={e => setForm({ ...form, ingredients: e.target.value })}
+                  rows={3} placeholder={"200 g chicken breast\n2 tbsp soy sauce"}
+                  style={{ ...inputStyle, resize: 'none' }} />
+              </Field>
+              <Field label="Steps (one per line)">
+                <textarea value={form.steps} onChange={e => setForm({ ...form, steps: e.target.value })}
+                  rows={3} placeholder={"Slice chicken\nHeat pan..."}
+                  style={{ ...inputStyle, resize: 'none' }} />
+              </Field>
+            </div>
+            {/* Sticky footer */}
+            <div style={{ padding:'12px 20px 20px', borderTop:'1px solid var(--border)' }}>
+              <div style={{ display:'flex', gap:10 }}>
+                <button onClick={() => { setShowForm(false); setForm(BLANK_FORM); }}
+                  style={{ flex:1, padding:'12px', borderRadius:12, border:'1.5px solid var(--border)', fontWeight:600, fontSize:14, background:'var(--surface)' }}>
+                  Cancel
+                </button>
+                <button onClick={handleSubmit}
+                  style={{ flex:2, padding:'12px', borderRadius:12, background:'var(--accent)', color:'#fff', fontWeight:600, fontSize:14, border:'none' }}>
+                  Save Recipe
+                </button>
+              </div>
+            </div>
           </div>
-        </BottomSheet>
+        </div>
       )}
 
       {showAI && (
         <AISuggestModal onClose={() => setShowAI(false)} onAdd={handleAddAI} pantry={pantry} />
+      )}
+      {showImport && (
+        <ImportRecipeModal onClose={() => setShowImport(false)} onAdd={(recipe) => { handleAddAI(recipe); setShowImport(false); }} />
       )}
     </div>
   );
