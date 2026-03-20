@@ -6,16 +6,6 @@ import { Icon, Empty } from '../components/UI.jsx';
 export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddRecipeToMeal, settings, activeMealTypes }) {
   const activeMT = activeMealTypes || MEAL_TYPES;
 
-  // Reset servings when opening a new meal detail
-  useEffect(() => {
-    if (detailFor?.meal) setViewServings(detailFor.meal.servings || 1);
-  }, [detailFor?.meal?.id]);
-
-  // Sync generate dialog selection when active meal types change in settings
-  useEffect(() => {
-    setSelectedMealTypes(activeMT);
-  }, [JSON.stringify(activeMT)]);
-
   const [view, setView]             = useState('calendar');
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [pickingFor, setPickingFor]   = useState(null); // { day, type }
@@ -30,6 +20,16 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
     setClearConfirm(false);
   };
   const [selectedMealTypes, setSelectedMealTypes] = useState(['Breakfast','Lunch','Dinner','Snack']);
+
+  // Sync generate dialog when active meal types change
+  useEffect(() => {
+    setSelectedMealTypes(activeMT);
+  }, [JSON.stringify(activeMT)]);
+
+  // Reset servings when opening a new meal detail
+  useEffect(() => {
+    if (detailFor?.meal) setViewServings(detailFor.meal.servings || 1);
+  }, [detailFor?.meal?.id]);
 
   // Randomly generate a full week plan
   const GENERATED_MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner'];
