@@ -1,9 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { CATEGORIES, guessCategory, slotIds } from '../data.js';
-import { Icon, Btn, Empty } from '../components/UI.jsx';
+import { Icon, Empty } from '../components/UI.jsx';
 
 export default function GroceryView({ mealPlan, recipes, pantry, setPantry, activeMealTypes }) {
   const [checked, setChecked] = useState({});
+  const [analysing, setAnalysing] = useState(false);
+  const [analysis, setAnalysis] = useState(null); // { duplicates, substitutions }
+  const [showAnalysis, setShowAnalysis] = useState(false);
+
 
   const groceryList = useMemo(() => {
     const needed = {};
@@ -43,8 +47,60 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
 
   const total = Object.keys(groceryList).length;
   const checkedCount = Object.values(checked).filter(Boolean).length;
+  const analyseList = async () => {
+    setAnalysing(true);
+    setAnalysis(null);
+    const items = Object.values(groceryList).map(i => `${i.qty} ${i.unit} ${i.name}`).join('
+');
+    const pantryItems = pantry.map(p => `${p.qty} ${p.unit} ${p.name}`).join('
+');
+    try {
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system: `You are a culinary assistant. Analyse a grocery list and pantry. Return ONLY valid JSON with this structure:
+{
+  "duplicates": [
+    { "items": ["garlic cloves", "garlic"], "mergedName": "garlic", "mergedQty": 5, "mergedUnit": "cloves", "reason": "same ingredient" }
+  ],
+  "substitutions": [
+    { "needed": "peanut oil", "substitute": "vegetable oil", "pantryQty": "500ml", "reason": "both neutral cooking oils" }
+  ]
+}
+Only include items where you are confident. Return empty arrays if nothing found. JSON only, no markdown.`,
+          messages: [{ role: 'user', content: `Grocery list:
+${items}
+
+Pantry:
+${pantryItems}
+
+Find duplicates (same ingredient, different names/specificity) and substitution opportunities (pantry items that could replace grocery items).` }],
+        }),
+      });
+      const data = await res.json();
+      const raw = data.content?.map(b => b.text || '').join('') || '';
+      const clean = raw.replace(/\`\`\`json|\`\`\`/g, '').trim();
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) {
+        const result = JSON.parse(match[0]);
+        setAnalysis(result);
+        setShowAnalysis(true);
+      }
+    } catch (e) {
+      console.error('Analysis error:', e);
+    }
+    setAnalysing(false);
+  };
+
+  const applyMerge = (dup) => {
+    // Remove old items, keep merged
+    setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.filter(d => d !== dup) }));
+  };
+
   const toggle = (key, item) => {
     const nowChecked = !checked[key];
+    setChecked(prev => ({ ...prev, [key]: nowChecked }));
 
     if (nowChecked) {
       // Add to pantry if not already there
@@ -98,7 +154,86 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
             }
           </p>
         </div>
+        {checkedCount > 0 && (
+          <button onClick={() => setChecked({})}
+            style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}>
+            Reset
+          </button>
+        )}
       </div>
+
+      {/* Smart analyse button */}
+      {total > 0 && (
+        <button onClick={analyseList} disabled={analysing}
+          style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'11px', borderRadius:12, marginBottom:16, border:'1.5px solid var(--accent)', background:'var(--accent-light)', color:'var(--accent)', fontWeight:600, fontSize:14 }}>
+          {analysing
+            ? <><div style={{ width:14, height:14, borderRadius:'50%', border:'2px solid var(--accent)', borderTopColor:'transparent', animation:'spin 0.7s linear infinite' }} /> Analysing list...</>
+            : <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Smart deduplicate & suggest substitutes</>
+          }
+        </button>
+      )}
+
+      {/* Analysis results */}
+      {showAnalysis && analysis && (
+        <div className="fade-in" style={{ marginBottom:20 }}>
+          {/* Duplicates */}
+          {(analysis.duplicates||[]).length > 0 && (
+            <div style={{ marginBottom:14 }}>
+              <p style={{ fontSize:12, fontWeight:700, color:'var(--amber)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 }}>
+                ⚠ Possible duplicates ({analysis.duplicates.length})
+              </p>
+              {analysis.duplicates.map((dup, i) => (
+                <div key={i} style={{ background:'var(--amber-light)', border:'1px solid var(--amber)', borderRadius:12, padding:'12px 14px', marginBottom:8 }}>
+                  <p style={{ fontSize:13, color:'var(--amber)', fontWeight:600, marginBottom:4 }}>
+                    {dup.items.join(' + ')} → {dup.mergedName}
+                  </p>
+                  <p style={{ fontSize:12, color:'var(--text2)', marginBottom:8 }}>{dup.reason}</p>
+                  <div style={{ display:'flex', gap:8 }}>
+                    <button onClick={() => applyMerge(dup)}
+                      style={{ flex:1, padding:'8px', borderRadius:8, border:'none', background:'var(--amber)', color:'#fff', fontWeight:600, fontSize:13 }}>
+                      Got it
+                    </button>
+                    <button onClick={() => setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.filter(d => d !== dup) }))}
+                      style={{ padding:'8px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--surface)', fontSize:13 }}>
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Substitutions */}
+          {(analysis.substitutions||[]).length > 0 && (
+            <div style={{ marginBottom:14 }}>
+              <p style={{ fontSize:12, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 }}>
+                💡 Substitution suggestions ({analysis.substitutions.length})
+              </p>
+              {analysis.substitutions.map((sub, i) => (
+                <div key={i} style={{ background:'var(--accent-light)', border:'1px solid var(--accent)', borderRadius:12, padding:'12px 14px', marginBottom:8 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                    <span style={{ fontSize:13, color:'var(--text)', fontWeight:600 }}>{sub.needed}</span>
+                    <span style={{ fontSize:12, color:'var(--text3)' }}>→</span>
+                    <span style={{ fontSize:13, color:'var(--accent)', fontWeight:600 }}>{sub.substitute}</span>
+                    <span style={{ fontSize:11, color:'var(--text3)', background:'var(--surface2)', borderRadius:6, padding:'1px 6px' }}>in pantry: {sub.pantryQty}</span>
+                  </div>
+                  <p style={{ fontSize:12, color:'var(--text2)', marginBottom:8 }}>{sub.reason}</p>
+                  <button onClick={() => setAnalysis(prev => ({ ...prev, substitutions: prev.substitutions.filter(s => s !== sub) }))}
+                    style={{ padding:'6px 14px', borderRadius:8, border:'1px solid var(--border)', background:'var(--surface)', fontSize:12 }}>
+                    Dismiss
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {(analysis.duplicates||[]).length === 0 && (analysis.substitutions||[]).length === 0 && (
+            <div style={{ padding:'12px 16px', background:'var(--accent-light)', borderRadius:12, fontSize:13, color:'var(--accent)', fontWeight:500, marginBottom:8 }}>
+              ✓ No duplicates or substitutions found — your list looks good!
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Categories */}
       {CATEGORIES.filter(cat => byCategory[cat]).map(cat => (
@@ -144,6 +279,7 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
                   <span style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500 }}>
                     {Number.isInteger(item.qty) ? item.qty : item.qty.toFixed(1)} {item.unit}
                   </span>
+
                 </button>
               );
             })}
