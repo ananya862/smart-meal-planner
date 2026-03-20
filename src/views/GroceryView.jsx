@@ -5,8 +5,9 @@ import { Icon, Empty } from '../components/UI.jsx';
 export default function GroceryView({ mealPlan, recipes, pantry, setPantry, activeMealTypes }) {
   const [checked, setChecked] = useState({});
   const [analysing, setAnalysing] = useState(false);
-  const [analysis, setAnalysis] = useState(null); // { duplicates, substitutions }
+  const [analysis, setAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [mergedItems, setMergedItems] = useState({}); // key: merged name, value: item override
 
 
   const groceryList = useMemo(() => {
@@ -36,16 +37,30 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
     return list;
   }, [mealPlan, recipes, pantry]);
 
+  // Apply merges on top of groceryList
+  const mergedGroceryList = useMemo(() => {
+    const list = { ...groceryList };
+    Object.values(mergedItems).forEach(item => {
+      // Remove original items that were merged
+      if (item._removedKeys) {
+        item._removedKeys.forEach(k => delete list[k]);
+      }
+      // Add merged item
+      list[item.name.toLowerCase()] = item;
+    });
+    return list;
+  }, [groceryList, mergedItems]);
+
   const byCategory = useMemo(() => {
     const bc = {};
-    Object.values(groceryList).forEach(item => {
+    Object.values(mergedGroceryList).forEach(item => {
       if (!bc[item.category]) bc[item.category] = [];
       bc[item.category].push(item);
     });
     return bc;
-  }, [groceryList]);
+  }, [mergedGroceryList]);
 
-  const total = Object.keys(groceryList).length;
+  const total = Object.keys(mergedGroceryList).length;
   const checkedCount = Object.values(checked).filter(Boolean).length;
   const analyseList = async () => {
     setAnalysing(true);
@@ -92,7 +107,30 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
   };
 
   const applyMerge = (dup) => {
-    // Remove old items, keep merged
+    // Find the original items in grocery list
+    const removedKeys = dup.items.map(name => name.toLowerCase());
+    const category = (() => {
+      for (const key of removedKeys) {
+        const found = groceryList[key];
+        if (found) return found.category;
+      }
+      return 'Other';
+    })();
+
+    // Create merged item
+    const mergedKey = dup.mergedName.toLowerCase();
+    setMergedItems(prev => ({
+      ...prev,
+      [mergedKey]: {
+        name: dup.mergedName,
+        qty: dup.mergedQty,
+        unit: dup.mergedUnit,
+        category,
+        _removedKeys: removedKeys,
+      }
+    }));
+
+    // Remove from analysis
     setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.filter(d => d !== dup) }));
   };
 
@@ -131,7 +169,7 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
     }
   };
 
-  if (total === 0) {
+  if (Object.keys(mergedGroceryList).length === 0 && Object.keys(groceryList).length === 0) {
     return (
       <div>
         <h2 style={{ fontSize: 26, marginBottom: 8 }}>Grocery List</h2>
@@ -189,7 +227,7 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
                   <div style={{ display:'flex', gap:8 }}>
                     <button onClick={() => applyMerge(dup)}
                       style={{ flex:1, padding:'8px', borderRadius:8, border:'none', background:'var(--amber)', color:'#fff', fontWeight:600, fontSize:13 }}>
-                      Got it
+                      ✓ Merge into "{dup.mergedName}" ({dup.mergedQty} {dup.mergedUnit})
                     </button>
                     <button onClick={() => setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.filter(d => d !== dup) }))}
                       style={{ padding:'8px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--surface)', fontSize:13 }}>
