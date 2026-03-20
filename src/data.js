@@ -117,3 +117,14 @@ export const guessCategory = (name) => {
   if (['olive oil','soy sauce','flour','sugar','honey','rice','pasta','oats','stock','cumin','spice','salt','pepper','vinegar','sauce','oil','chia','lentil','bean'].some(m => n.includes(m))) return 'Pantry';
   return 'Produce';
 };
+
+// Normalise a recipe object — lowercase tags, trim whitespace
+export const normaliseRecipe = (recipe) => ({
+  ...recipe,
+  name: (recipe.name || '').trim(),
+  tags: (recipe.tags || []).map(t => t.toLowerCase().trim()).filter(Boolean),
+  ingredients: (recipe.ingredients || []).map(ing => ({
+    ...ing,
+    name: (ing.name || '').trim(),
+  })),
+});
