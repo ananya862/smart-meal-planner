@@ -157,15 +157,15 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
           <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 4px' }}>
             <div style={{ width:36, height:4, borderRadius:2, background:'var(--border2)' }} />
           </div>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'4px 20px 12px', borderBottom:'1px solid var(--border)' }}>
-            <div>
+          <div style={{ display:'flex', alignItems:'flex-start', padding:'4px 20px 12px', borderBottom:'1px solid var(--border)', gap:10 }}>
+            <div style={{ flex:1, minWidth:0 }}>
               <span style={{
                 fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:20, display:'inline-block', marginBottom:6,
                 background: MEAL_TYPE_COLORS[detailFor.type].bg, color: MEAL_TYPE_COLORS[detailFor.type].color,
               }}>{detailFor.type} · {detailFor.day}</span>
-              <h2 style={{ fontSize:21, fontFamily:'Playfair Display, serif' }}>{detailFor.meal.name}</h2>
+              <h2 style={{ fontSize:19, fontFamily:'Playfair Display, serif', lineHeight:1.3 }}>{detailFor.meal.name}</h2>
             </div>
-            <button onClick={() => setDetailFor(null)} style={{ width:32, height:32, borderRadius:'50%', background:'var(--surface2)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text2)', flexShrink:0 }}>
+            <button onClick={() => setDetailFor(null)} style={{ width:32, height:32, borderRadius:'50%', background:'var(--surface2)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text2)', flexShrink:0, marginTop:2 }}>
               <Icon name="x" size={16} />
             </button>
           </div>
