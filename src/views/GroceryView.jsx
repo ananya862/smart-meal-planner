@@ -9,6 +9,7 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const [analysis, setAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [mergedItems, setMergedItems] = useStorage('smp_grocery_merges', {});
+  const [deletedItems, setDeletedItems] = useStorage('smp_grocery_deleted', []);
   const [editingMerge, setEditingMerge] = useState(null); // dup being edited // key: merged name, value: item override
 
 
@@ -54,8 +55,10 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
       const { _removedKeys, ...clean } = item;
       list[clean.name.toLowerCase()] = clean;
     });
+    // Remove manually deleted items
+    deletedItems.forEach(k => delete list[k]);
     return list;
-  }, [groceryList, mergedItems]);
+  }, [groceryList, mergedItems, deletedItems]);
 
   const byCategory = useMemo(() => {
     const bc = {};
@@ -178,6 +181,10 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
     setAnalysis(null);
   };
 
+  const deleteItem = (key) => {
+    setDeletedItems(prev => [...prev, key]);
+  };
+
   const toggle = (key, item) => {
     const nowChecked = !checked[key];
     setChecked(prev => ({ ...prev, [key]: nowChecked }));
@@ -234,12 +241,20 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
             }
           </p>
         </div>
-        {checkedCount > 0 && (
-          <button onClick={() => setChecked({})}
-            style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}>
-            Reset
-          </button>
-        )}
+        <div style={{ display:'flex', gap:10 }}>
+          {checkedCount > 0 && (
+            <button onClick={() => setChecked({})}
+              style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}>
+              Reset checks
+            </button>
+          )}
+          {deletedItems.length > 0 && (
+            <button onClick={() => setDeletedItems([])}
+              style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}>
+              Restore deleted
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Smart analyse button */}
@@ -394,6 +409,10 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
                   <span style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500 }}>
                     {Number.isInteger(item.qty) ? item.qty : item.qty.toFixed(1)} {item.unit}
                   </span>
+                  <button onClick={e => { e.stopPropagation(); deleteItem(key); }}
+                    style={{ color: 'var(--text3)', padding: '4px 6px', marginLeft: 4, flexShrink: 0 }}>
+                    <Icon name="x" size={14} />
+                  </button>
 
                 </button>
               );
