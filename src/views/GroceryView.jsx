@@ -41,13 +41,17 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   // Apply merges on top of groceryList
   const mergedGroceryList = useMemo(() => {
     const list = { ...groceryList };
+    // Collect all keys to remove
+    const allRemovedKeys = new Set();
     Object.values(mergedItems).forEach(item => {
-      // Remove original items that were merged
-      if (item._removedKeys) {
-        item._removedKeys.forEach(k => delete list[k]);
-      }
-      // Add merged item
-      list[item.name.toLowerCase()] = item;
+      if (item._removedKeys) item._removedKeys.forEach(k => allRemovedKeys.add(k));
+    });
+    // Remove original keys
+    allRemovedKeys.forEach(k => delete list[k]);
+    // Add merged items
+    Object.values(mergedItems).forEach(item => {
+      const { _removedKeys, ...clean } = item;
+      list[clean.name.toLowerCase()] = clean;
     });
     return list;
   }, [groceryList, mergedItems]);
@@ -108,30 +112,59 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
   };
 
   const applyMerge = (dup) => {
-    // Find the original items in grocery list
-    const removedKeys = dup.items.map(name => name.toLowerCase());
-    const category = (() => {
-      for (const key of removedKeys) {
-        const found = groceryList[key];
-        if (found) return found.category;
-      }
-      return 'Other';
-    })();
+    // Find matching keys in the CURRENT merged grocery list (not base groceryList)
+    // so we catch items that were already merged
+    const currentList = { ...groceryList };
+    Object.values(mergedItems).forEach(item => {
+      if (item._removedKeys) item._removedKeys.forEach(k => delete currentList[k]);
+      const { _removedKeys, ...clean } = item;
+      currentList[clean.name.toLowerCase()] = clean;
+    });
 
-    // Create merged item
-    const mergedKey = dup.mergedName.toLowerCase();
-    setMergedItems(prev => ({
-      ...prev,
-      [mergedKey]: {
-        name: dup.mergedName,
-        qty: dup.mergedQty,
-        unit: dup.mergedUnit,
-        category,
-        _removedKeys: removedKeys,
-      }
-    }));
+    const dupNamesLower = dup.items.map(n => n.toLowerCase().trim());
+    const removedKeys = Object.keys(currentList).filter(key => {
+      const itemName = currentList[key].name.toLowerCase().trim();
+      return dupNamesLower.some(n =>
+        itemName === n ||
+        itemName.includes(n) ||
+        n.includes(itemName)
+      );
+    });
 
-    // Remove from analysis
+    // Use category from first matched item
+    let category = 'Other';
+    for (const key of removedKeys) {
+      if (currentList[key]?.category) { category = currentList[key].category; break; }
+    }
+
+    const mergedKey = dup.mergedName.toLowerCase().trim();
+    setMergedItems(prev => {
+      // Build new mergedItems — also absorb any previously merged keys
+      const allRemovedKeys = new Set(removedKeys);
+      // If any existing mergedItem overlaps with what we're removing, absorb its removedKeys too
+      Object.values(prev).forEach(existing => {
+        if (existing._removedKeys?.some(k => allRemovedKeys.has(k))) {
+          existing._removedKeys.forEach(k => allRemovedKeys.add(k));
+        }
+      });
+      // Remove any existing mergedItems that overlap
+      const cleaned = Object.fromEntries(
+        Object.entries(prev).filter(([k, v]) =>
+          !v._removedKeys?.some(rk => allRemovedKeys.has(rk)) && k !== mergedKey
+        )
+      );
+      return {
+        ...cleaned,
+        [mergedKey]: {
+          name: dup.mergedName,
+          qty: dup.mergedQty,
+          unit: dup.mergedUnit,
+          category,
+          _removedKeys: [...allRemovedKeys],
+        }
+      };
+    });
+
     setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.filter(d => d !== dup) }));
   };
 
