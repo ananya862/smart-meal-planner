@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { CATEGORIES, guessCategory, slotIds } from '../data.js';
+import { useStorage } from '../hooks/useStorage.js';
 import { Icon, Empty } from '../components/UI.jsx';
 
 export default function GroceryView({ mealPlan, recipes, pantry, setPantry, activeMealTypes }) {
@@ -7,7 +8,7 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const [analysing, setAnalysing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
-  const [mergedItems, setMergedItems] = useState({});
+  const [mergedItems, setMergedItems] = useStorage('smp_grocery_merges', {});
   const [editingMerge, setEditingMerge] = useState(null); // dup being edited // key: merged name, value: item override
 
 

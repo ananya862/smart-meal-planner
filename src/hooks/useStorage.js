@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export function useStorage(key, initialValue) {
   const [value, setValue] = useState(() => {
@@ -18,5 +18,14 @@ export function useStorage(key, initialValue) {
     }
   }, [key, value]);
 
-  return [value, setValue];
+  // Wrap setValue to handle functional updaters and force re-render
+  const setValuePersisted = useCallback((updater) => {
+    setValue(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      // Force a new object reference so useEffect fires
+      return Array.isArray(next) ? [...next] : (next && typeof next === 'object' ? { ...next } : next);
+    });
+  }, []);
+
+  return [value, setValuePersisted];
 }
