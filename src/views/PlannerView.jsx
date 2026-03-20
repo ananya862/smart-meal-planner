@@ -152,22 +152,26 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
         maxHeight:'90dvh', display:'flex', flexDirection:'column',
         paddingBottom:'calc(var(--nav-height) + var(--safe-bottom) + 16px)',
       }}>
-        <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 4px' }}>
-          <div style={{ width:36, height:4, borderRadius:2, background:'var(--border2)' }} />
-        </div>
-        <div style={{ flex:1, overflowY:'auto', padding:'8px 20px 24px' }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
+        {/* Fixed handle + header — stays visible when scrolling */}
+        <div style={{ flexShrink:0 }}>
+          <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 4px' }}>
+            <div style={{ width:36, height:4, borderRadius:2, background:'var(--border2)' }} />
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'4px 20px 12px', borderBottom:'1px solid var(--border)' }}>
             <div>
               <span style={{
-                fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:20, display:'inline-block', marginBottom:8,
+                fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:20, display:'inline-block', marginBottom:6,
                 background: MEAL_TYPE_COLORS[detailFor.type].bg, color: MEAL_TYPE_COLORS[detailFor.type].color,
               }}>{detailFor.type} · {detailFor.day}</span>
               <h2 style={{ fontSize:21, fontFamily:'Playfair Display, serif' }}>{detailFor.meal.name}</h2>
             </div>
-            <button onClick={() => setDetailFor(null)} style={{ padding:6, color:'var(--text2)' }}>
-              <Icon name="x" size={20} />
+            <button onClick={() => setDetailFor(null)} style={{ width:32, height:32, borderRadius:'50%', background:'var(--surface2)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text2)', flexShrink:0 }}>
+              <Icon name="x" size={16} />
             </button>
           </div>
+        </div>
+        <div style={{ flex:1, overflowY:'auto', padding:'16px 20px 24px' }}>
+          <div style={{ marginBottom:14 }}>
           {(() => {
             const { hasIssue, allergens, avoided, dietaryFlags } = checkRecipe(detailFor.meal, settings);
             return hasIssue ? (
@@ -230,6 +234,7 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
               ))}
             </div>
           )}
+          </div>
 
           {/* Actions */}
           <div style={{ display:'flex', gap:10 }}>
