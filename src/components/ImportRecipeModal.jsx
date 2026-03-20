@@ -191,7 +191,7 @@ export default function ImportRecipeModal({ onClose, onAdd }) {
         </div>
 
         {preview && (
-          <div style={{ padding:'12px 20px 20px', borderTop:'1px solid var(--border)', flexShrink:0 }}>
+          <div style={{ padding:'12px 20px', paddingBottom:'calc(var(--nav-height) + var(--safe-bottom) + 12px)', borderTop:'1px solid var(--border)', flexShrink:0 }}>
             <button onClick={handleAdd} disabled={added}
               style={{ width:'100%', padding:'13px', borderRadius:12, border:'none', background: added ? 'var(--accent-light)' : 'var(--accent)', color: added ? 'var(--accent)' : '#fff', fontWeight:600, fontSize:15, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
               {added
