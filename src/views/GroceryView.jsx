@@ -71,7 +71,7 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const analyseList = async () => {
     setAnalysing(true);
     setAnalysis(null);
-    const items = Object.values(groceryList).map(i => `${i.qty} ${i.unit} ${i.name}`).join('\n');
+    const items = Object.values(mergedGroceryList).map(i => `${i.qty} ${i.unit} ${i.name}`).join('\n');
     const pantryItems = pantry.map(p => `${p.qty} ${p.unit} ${p.name}`).join('\n');
     try {
       const res = await fetch('/api/claude', {
@@ -103,7 +103,14 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
       const match = clean.match(/\{[\s\S]*\}/);
       if (match) {
         const result = JSON.parse(match[0]);
-        setAnalysis(result);
+        // Filter out duplicates that reference items no longer in the list
+        const currentKeys = Object.keys(mergedGroceryList).map(k => k.toLowerCase());
+        const filteredDups = (result.duplicates || []).filter(dup =>
+          dup.items.some(name =>
+            currentKeys.some(k => k.includes(name.toLowerCase()) || name.toLowerCase().includes(k))
+          )
+        );
+        setAnalysis({ ...result, duplicates: filteredDups });
         setShowAnalysis(true);
       }
     } catch (e) {
