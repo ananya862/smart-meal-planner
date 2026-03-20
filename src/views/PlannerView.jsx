@@ -149,12 +149,13 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
       onClick={e => { if (e.target === e.currentTarget) setDetailFor(null); }}>
       <div className="slide-up" style={{
         background:'var(--surface)', width:'100%', borderRadius:'20px 20px 0 0',
+        maxHeight:'90dvh', display:'flex', flexDirection:'column',
         paddingBottom:'calc(var(--nav-height) + var(--safe-bottom) + 16px)',
       }}>
         <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 4px' }}>
           <div style={{ width:36, height:4, borderRadius:2, background:'var(--border2)' }} />
         </div>
-        <div style={{ padding:'8px 20px 32px' }}>
+        <div style={{ flex:1, overflowY:'auto', padding:'8px 20px 24px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
             <div>
               <span style={{
@@ -194,10 +195,53 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
               </div>
             ))}
           </div>
-          <button
-            onClick={() => handleRemoveOne(detailFor.day, detailFor.type, detailFor.index)}
-            style={{ width:'100%', padding:'12px', borderRadius:12, background:'var(--red-light)', color:'var(--red)', fontWeight:600, fontSize:14, border:'none' }}
-          >Remove this recipe</button>
+          {/* Ingredients */}
+          {(detailFor.meal.ingredients||[]).length > 0 && (
+            <div style={{ marginBottom:16 }}>
+              <p style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:8 }}>Ingredients</p>
+              <div style={{ background:'var(--surface2)', borderRadius:12, padding:'10px 14px' }}>
+                {detailFor.meal.ingredients.map((ing, i) => (
+                  <div key={i} style={{ display:'flex', justifyContent:'space-between', padding:'4px 0', borderBottom: i < detailFor.meal.ingredients.length-1 ? '1px solid var(--border)' : 'none' }}>
+                    <span style={{ fontSize:13, color:'var(--text2)' }}>{ing.name}</span>
+                    <span style={{ fontSize:13, color:'var(--text3)', fontWeight:500 }}>{ing.qty} {ing.unit}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Steps */}
+          {(detailFor.meal.steps||[]).length > 0 && (
+            <div style={{ marginBottom:16 }}>
+              <p style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:8 }}>Steps</p>
+              <ol style={{ paddingLeft:18, margin:0 }}>
+                {detailFor.meal.steps.map((step, i) => (
+                  <li key={i} style={{ fontSize:13, color:'var(--text2)', marginBottom:6, lineHeight:1.5 }}>{step}</li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {/* Tags */}
+          {(detailFor.meal.tags||[]).length > 0 && (
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:16 }}>
+              {detailFor.meal.tags.map(t => (
+                <span key={t} style={{ fontSize:11, padding:'3px 9px', borderRadius:20, background:'var(--accent-light)', color:'var(--accent)', fontWeight:500 }}>{t}</span>
+              ))}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div style={{ display:'flex', gap:10 }}>
+            <button
+              onClick={() => handleRemoveOne(detailFor.day, detailFor.type, detailFor.index)}
+              style={{ flex:1, padding:'12px', borderRadius:12, background:'var(--red-light)', color:'var(--red)', fontWeight:600, fontSize:14, border:'none' }}
+            >Remove</button>
+            <button
+              onClick={() => { setDetailFor(null); setPickingFor({ day: detailFor.day, type: detailFor.type }); }}
+              style={{ flex:1, padding:'12px', borderRadius:12, background:'var(--accent)', color:'#fff', fontWeight:600, fontSize:14, border:'none' }}
+            >Replace</button>
+          </div>
         </div>
       </div>
     </div>
