@@ -173,13 +173,9 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
       };
     });
 
-    setAnalysis(prev => {
-      const remaining = prev.duplicates.filter(d => d !== dup);
-      if (remaining.length === 0 && (prev.substitutions||[]).length === 0) {
-        setShowAnalysis(false);
-      }
-      return { ...prev, duplicates: remaining };
-    });
+    // Always close and reset after a merge — user can re-run to check again
+    setShowAnalysis(false);
+    setAnalysis(null);
   };
 
   const toggle = (key, item) => {
