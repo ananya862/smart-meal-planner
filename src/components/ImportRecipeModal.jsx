@@ -114,7 +114,7 @@ export default function ImportRecipeModal({ onClose, onAdd }) {
         </div>
 
         {/* Scrollable content */}
-        <div style={{ flex:1, overflowY:'auto', padding:'16px 20px' }}>
+        <div style={{ flex:1, overflowY:'auto', padding:'16px 20px', paddingBottom:'24px' }}>
           {!preview ? (
             <>
               {tab === 'paste' ? (
@@ -126,7 +126,7 @@ export default function ImportRecipeModal({ onClose, onAdd }) {
                     value={text}
                     onChange={e => setText(e.target.value)}
                     placeholder={"Paste your recipe here...\n\nIngredients:\n- 2 cups flour\n..."}
-                    rows={10}
+                    rows={6}
                     style={{ ...inputStyle, resize:'none', marginBottom:12, lineHeight:1.6 }}
                   />
                   <button onClick={handleImportPaste} disabled={loading || !text.trim()}
