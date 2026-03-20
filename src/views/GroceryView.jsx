@@ -123,8 +123,7 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
   };
 
   const applyMerge = (dup) => {
-    // Find matching keys in the CURRENT merged grocery list (not base groceryList)
-    // so we catch items that were already merged
+    // Build current list (base + merges applied)
     const currentList = { ...groceryList };
     Object.values(mergedItems).forEach(item => {
       if (item._removedKeys) item._removedKeys.forEach(k => delete currentList[k]);
@@ -132,14 +131,12 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
       currentList[clean.name.toLowerCase()] = clean;
     });
 
+    // Only remove keys that EXACTLY match one of the dup.items names
+    // Use exact match first, then fall back to startsWith to avoid "chicken" matching "chicken thighs"
     const dupNamesLower = dup.items.map(n => n.toLowerCase().trim());
     const removedKeys = Object.keys(currentList).filter(key => {
       const itemName = currentList[key].name.toLowerCase().trim();
-      return dupNamesLower.some(n =>
-        itemName === n ||
-        itemName.includes(n) ||
-        n.includes(itemName)
-      );
+      return dupNamesLower.some(n => itemName === n);
     });
 
     // Use category from first matched item
