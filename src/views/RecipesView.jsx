@@ -29,6 +29,7 @@ export default function RecipesView({ recipes, setRecipes, pantry, settings }) {
   });
 
   const handleDelete = (id) => setRecipes(prev => prev.filter(r => r.id !== id));
+  const handleEdit = (updated) => setRecipes(prev => prev.map(r => r.id === updated.id ? updated : r));
 
   const handleAddAI = (recipe) => {
     setRecipes(prev => [normaliseRecipe(recipe), ...prev]);
@@ -137,7 +138,7 @@ export default function RecipesView({ recipes, setRecipes, pantry, settings }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {filtered.length === 0
           ? <Empty emoji="🍽️" title="No recipes found" subtitle="Try a different search or add a new recipe." />
-          : filtered.map(r => <RecipeCard key={r.id} recipe={r} onDelete={handleDelete} settings={settings} />)
+          : filtered.map(r => <RecipeCard key={r.id} recipe={r} onDelete={handleDelete} onEdit={handleEdit} settings={settings} />)
         }
       </div>
 
