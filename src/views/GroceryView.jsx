@@ -7,7 +7,8 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const [analysing, setAnalysing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
-  const [mergedItems, setMergedItems] = useState({}); // key: merged name, value: item override
+  const [mergedItems, setMergedItems] = useState({});
+  const [editingMerge, setEditingMerge] = useState(null); // dup being edited // key: merged name, value: item override
 
 
   const groceryList = useMemo(() => {
@@ -218,24 +219,59 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
               <p style={{ fontSize:12, fontWeight:700, color:'var(--amber)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 }}>
                 ⚠ Possible duplicates ({analysis.duplicates.length})
               </p>
-              {analysis.duplicates.map((dup, i) => (
-                <div key={i} style={{ background:'var(--amber-light)', border:'1px solid var(--amber)', borderRadius:12, padding:'12px 14px', marginBottom:8 }}>
-                  <p style={{ fontSize:13, color:'var(--amber)', fontWeight:600, marginBottom:4 }}>
-                    {dup.items.join(' + ')} → {dup.mergedName}
-                  </p>
-                  <p style={{ fontSize:12, color:'var(--text2)', marginBottom:8 }}>{dup.reason}</p>
-                  <div style={{ display:'flex', gap:8 }}>
-                    <button onClick={() => applyMerge(dup)}
-                      style={{ flex:1, padding:'8px', borderRadius:8, border:'none', background:'var(--amber)', color:'#fff', fontWeight:600, fontSize:13 }}>
-                      ✓ Merge into "{dup.mergedName}" ({dup.mergedQty} {dup.mergedUnit})
-                    </button>
-                    <button onClick={() => setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.filter(d => d !== dup) }))}
-                      style={{ padding:'8px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--surface)', fontSize:13 }}>
-                      Dismiss
-                    </button>
+              {analysis.duplicates.map((dup, i) => {
+                const isEditing = editingMerge === i;
+                const [mName, setMName] = [dup._editName ?? dup.mergedName, (v) => {
+                  setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.map((d, j) => j === i ? { ...d, _editName: v } : d) }));
+                }];
+                const [mQty, setMQty] = [dup._editQty ?? dup.mergedQty, (v) => {
+                  setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.map((d, j) => j === i ? { ...d, _editQty: v } : d) }));
+                }];
+                const [mUnit, setMUnit] = [dup._editUnit ?? dup.mergedUnit, (v) => {
+                  setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.map((d, j) => j === i ? { ...d, _editUnit: v } : d) }));
+                }];
+                const unitsMatch = new Set(dup.items.map(name => {
+                  const found = Object.values(groceryList).find(g => g.name.toLowerCase() === name.toLowerCase());
+                  return found?.unit;
+                })).size <= 1;
+                return (
+                  <div key={i} style={{ background:'var(--amber-light)', border:'1px solid var(--amber)', borderRadius:12, padding:'12px 14px', marginBottom:8 }}>
+                    <p style={{ fontSize:12, color:'var(--amber)', fontWeight:600, marginBottom:2 }}>{dup.items.join(' + ')}</p>
+                    <p style={{ fontSize:11, color:'var(--text3)', marginBottom:8 }}>{dup.reason}</p>
+                    {!unitsMatch && (
+                      <p style={{ fontSize:11, color:'var(--red)', marginBottom:8 }}>⚠ Different units — please verify the merged quantity below</p>
+                    )}
+                    {/* Editable merge fields */}
+                    <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:6, marginBottom:10 }}>
+                      <div>
+                        <p style={{ fontSize:10, color:'var(--text3)', marginBottom:3 }}>Merged name</p>
+                        <input value={mName} onChange={e => setMName(e.target.value)}
+                          style={{ width:'100%', padding:'6px 8px', borderRadius:7, border:'1px solid var(--border)', fontSize:13, background:'var(--surface)' }} />
+                      </div>
+                      <div>
+                        <p style={{ fontSize:10, color:'var(--text3)', marginBottom:3 }}>Qty</p>
+                        <input type="number" value={mQty} onChange={e => setMQty(e.target.value)}
+                          style={{ width:'100%', padding:'6px 8px', borderRadius:7, border:'1px solid var(--border)', fontSize:13, background:'var(--surface)' }} />
+                      </div>
+                      <div>
+                        <p style={{ fontSize:10, color:'var(--text3)', marginBottom:3 }}>Unit</p>
+                        <input value={mUnit} onChange={e => setMUnit(e.target.value)}
+                          style={{ width:'100%', padding:'6px 8px', borderRadius:7, border:'1px solid var(--border)', fontSize:13, background:'var(--surface)' }} />
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button onClick={() => applyMerge({ ...dup, mergedName: mName, mergedQty: parseFloat(mQty)||1, mergedUnit: mUnit })}
+                        style={{ flex:1, padding:'8px', borderRadius:8, border:'none', background:'var(--amber)', color:'#fff', fontWeight:600, fontSize:13 }}>
+                        ✓ Merge
+                      </button>
+                      <button onClick={() => setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.filter((d, j) => j !== i) }))}
+                        style={{ padding:'8px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--surface)', fontSize:13 }}>
+                        Dismiss
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
