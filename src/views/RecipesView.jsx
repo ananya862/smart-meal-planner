@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import RecipeCard from '../components/RecipeCard.jsx';
+import { normaliseRecipe } from '../data.js';
 import AISuggestModal from '../components/AISuggestModal.jsx';
 import ImportRecipeModal from '../components/ImportRecipeModal.jsx';
 import { Icon, Btn, Field, inputStyle, BottomSheet, Empty, Tag } from '../components/UI.jsx';
@@ -30,7 +31,7 @@ export default function RecipesView({ recipes, setRecipes, pantry, settings }) {
   const handleDelete = (id) => setRecipes(prev => prev.filter(r => r.id !== id));
 
   const handleAddAI = (recipe) => {
-    setRecipes(prev => [recipe, ...prev]);
+    setRecipes(prev => [normaliseRecipe(recipe), ...prev]);
   };
 
   const handleSubmit = () => {
@@ -41,7 +42,7 @@ export default function RecipesView({ recipes, setRecipes, pantry, settings }) {
       servings: +form.servings || 2,
       prepTime: +form.prepTime || 10,
       cookTime: +form.cookTime || 20,
-      tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+      tags: form.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean),
       calories: +form.calories || 400,
       protein: +form.protein || 20,
       carbs: +form.carbs || 40,
@@ -53,7 +54,7 @@ export default function RecipesView({ recipes, setRecipes, pantry, settings }) {
       }),
       steps: form.steps.split('\n').filter(Boolean),
     };
-    setRecipes(prev => [recipe, ...prev]);
+    setRecipes(prev => [normaliseRecipe(recipe), ...prev]);
     setShowForm(false);
     setForm(BLANK_FORM);
   };

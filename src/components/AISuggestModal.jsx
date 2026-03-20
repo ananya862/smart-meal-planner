@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icon, MacroBar, Tag, Btn, Spinner, inputStyle } from './UI.jsx';
+import { normaliseRecipe } from '../data.js';
 
 export default function AISuggestModal({ onClose, onAdd, pantry }) {
   const [prompt, setPrompt] = useState('');
@@ -31,7 +32,7 @@ export default function AISuggestModal({ onClose, onAdd, pantry }) {
       const jsonMatch = clean.match(/\[[\s\S]*\]/);
       if (!jsonMatch) throw new Error('No JSON found in response');
       const parsed = JSON.parse(jsonMatch[0]);
-      setResults(parsed.map((r, i) => ({ ...r, id: Date.now() + i })));
+      setResults(parsed.map((r, i) => ({ ...r, id: Date.now() + i, tags: (r.tags || []).map(t => t.trim().toLowerCase()) })));
     } catch {
       setError('Could not generate suggestions. Please try again.');
     }
@@ -39,7 +40,7 @@ export default function AISuggestModal({ onClose, onAdd, pantry }) {
   };
 
   const handleAdd = (r) => {
-    onAdd(r);
+    onAdd(normaliseRecipe(r));
     setAdded(prev => ({ ...prev, [r.id]: true }));
   };
 

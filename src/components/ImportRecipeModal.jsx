@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icon, Spinner, inputStyle, MacroBar, Tag } from './UI.jsx';
+import { normaliseRecipe } from '../data.js';
 
 const SYSTEM_PROMPT = `You are a recipe parser. Extract recipe information and return ONLY a valid JSON object with these exact fields:
 {"name":string,"servings":number,"prepTime":number,"cookTime":number,"tags":string[],"calories":number,"protein":number,"carbs":number,"fat":number,"sugar":number,"ingredients":[{"name":string,"qty":number,"unit":string}],"steps":string[]}
@@ -20,8 +21,7 @@ export default function ImportRecipeModal({ onClose, onAdd }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(bodyObj),
     });
-    const rawText = await res.text();
-    const data = JSON.parse(rawText);
+    const data = await res.json();
     return data;
   };
 
@@ -43,6 +43,8 @@ export default function ImportRecipeModal({ onClose, onAdd }) {
         messages: [{ role: 'user', content: `Parse this recipe:\n\n${text}` }],
       });
       const recipe = parseResponse(data);
+      // Normalise tags to lowercase
+      if (recipe.tags) recipe.tags = recipe.tags.map(t => t.trim().toLowerCase());
       setPreview({ ...recipe, id: Date.now() });
     } catch (e) {
       console.error('Import error:', e);
@@ -60,6 +62,8 @@ export default function ImportRecipeModal({ onClose, onAdd }) {
         fetchUrl: url,
       });
       const recipe = parseResponse(data);
+      // Normalise tags to lowercase
+      if (recipe.tags) recipe.tags = recipe.tags.map(t => t.trim().toLowerCase());
       setPreview({ ...recipe, id: Date.now() });
     } catch (e) {
       console.error('Import error:', e);
@@ -69,7 +73,7 @@ export default function ImportRecipeModal({ onClose, onAdd }) {
   };
 
   const handleAdd = () => {
-    onAdd(preview);
+    onAdd(normaliseRecipe(preview));
     setAdded(true);
     setTimeout(() => onClose(), 800);
   };
