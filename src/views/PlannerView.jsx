@@ -6,6 +6,11 @@ import { Icon, Empty } from '../components/UI.jsx';
 export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddRecipeToMeal, settings, activeMealTypes }) {
   const activeMT = activeMealTypes || MEAL_TYPES;
 
+  // Reset servings when opening a new meal detail
+  useEffect(() => {
+    if (detailFor?.meal) setViewServings(detailFor.meal.servings || 1);
+  }, [detailFor?.meal?.id]);
+
   // Sync generate dialog selection when active meal types change in settings
   useEffect(() => {
     setSelectedMealTypes(activeMT);
@@ -15,6 +20,7 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [pickingFor, setPickingFor]   = useState(null); // { day, type }
   const [detailFor, setDetailFor]     = useState(null); // { day, type, meal, index }
+  const [viewServings, setViewServings] = useState(1);
   const [confirming, setConfirming]   = useState(false);
   const [applyDietary, setApplyDietary] = useState(true);
   const [clearConfirm, setClearConfirm] = useState(false);
@@ -199,20 +205,42 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
               </div>
             ))}
           </div>
-          {/* Ingredients */}
-          {(detailFor.meal.ingredients||[]).length > 0 && (
-            <div style={{ marginBottom:16 }}>
-              <p style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:8 }}>Ingredients</p>
-              <div style={{ background:'var(--surface2)', borderRadius:12, padding:'10px 14px' }}>
-                {detailFor.meal.ingredients.map((ing, i) => (
-                  <div key={i} style={{ display:'flex', justifyContent:'space-between', padding:'4px 0', borderBottom: i < detailFor.meal.ingredients.length-1 ? '1px solid var(--border)' : 'none' }}>
-                    <span style={{ fontSize:13, color:'var(--text2)' }}>{ing.name}</span>
-                    <span style={{ fontSize:13, color:'var(--text3)', fontWeight:500 }}>{ing.qty} {ing.unit}</span>
-                  </div>
-                ))}
-              </div>
+          {/* Servings adjuster */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16, background:'var(--surface2)', borderRadius:12, padding:'10px 14px' }}>
+            <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>Servings</span>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <button onClick={() => setViewServings(s => Math.max(1, s - 1))}
+                style={{ width:30, height:30, borderRadius:8, background:'var(--surface)', border:'1px solid var(--border)', fontSize:18, color:'var(--text)', display:'flex', alignItems:'center', justifyContent:'center' }}>−</button>
+              <span style={{ fontSize:16, fontWeight:700, color:'var(--accent)', minWidth:24, textAlign:'center' }}>{viewServings}</span>
+              <button onClick={() => setViewServings(s => s + 1)}
+                style={{ width:30, height:30, borderRadius:8, background:'var(--surface)', border:'1px solid var(--border)', fontSize:18, color:'var(--text)', display:'flex', alignItems:'center', justifyContent:'center' }}>+</button>
             </div>
-          )}
+          </div>
+
+          {/* Ingredients scaled by servings */}
+          {(detailFor.meal.ingredients||[]).length > 0 && (() => {
+            const ratio = viewServings / (detailFor.meal.servings || 1);
+            return (
+              <div style={{ marginBottom:16 }}>
+                <p style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:8 }}>
+                  Ingredients
+                  {ratio !== 1 && <span style={{ fontSize:11, color:'var(--accent)', marginLeft:6, fontWeight:400 }}>scaled for {viewServings} serving{viewServings !== 1 ? 's' : ''}</span>}
+                </p>
+                <div style={{ background:'var(--surface2)', borderRadius:12, padding:'10px 14px' }}>
+                  {detailFor.meal.ingredients.map((ing, i) => {
+                    const scaled = ing.qty * ratio;
+                    const display = Number.isInteger(scaled) ? scaled : parseFloat(scaled.toFixed(2));
+                    return (
+                      <div key={i} style={{ display:'flex', justifyContent:'space-between', padding:'4px 0', borderBottom: i < detailFor.meal.ingredients.length-1 ? '1px solid var(--border)' : 'none' }}>
+                        <span style={{ fontSize:13, color:'var(--text2)' }}>{ing.name}</span>
+                        <span style={{ fontSize:13, color: ratio !== 1 ? 'var(--accent)' : 'var(--text3)', fontWeight: ratio !== 1 ? 600 : 500 }}>{display} {ing.unit}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Steps */}
           {(detailFor.meal.steps||[]).length > 0 && (
