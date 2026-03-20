@@ -50,10 +50,8 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const analyseList = async () => {
     setAnalysing(true);
     setAnalysis(null);
-    const items = Object.values(groceryList).map(i => `${i.qty} ${i.unit} ${i.name}`).join('
-');
-    const pantryItems = pantry.map(p => `${p.qty} ${p.unit} ${p.name}`).join('
-');
+    const items = Object.values(groceryList).map(i => `${i.qty} ${i.unit} ${i.name}`).join('\n');
+    const pantryItems = pantry.map(p => `${p.qty} ${p.unit} ${p.name}`).join('\n');
     try {
       const res = await fetch('/api/claude', {
         method: 'POST',
