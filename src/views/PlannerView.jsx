@@ -149,7 +149,7 @@ export default function PlannerView({ mealPlan, recipes, onRemoveMeal, onAddReci
       onClick={e => { if (e.target === e.currentTarget) setDetailFor(null); }}>
       <div className="slide-up" style={{
         background:'var(--surface)', width:'100%', borderRadius:'20px 20px 0 0',
-        maxHeight:'90dvh', display:'flex', flexDirection:'column',
+        maxHeight:'75dvh', display:'flex', flexDirection:'column',
         paddingBottom:'calc(var(--nav-height) + var(--safe-bottom) + 16px)',
       }}>
         {/* Fixed handle + header — stays visible when scrolling */}
