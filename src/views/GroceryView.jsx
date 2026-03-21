@@ -129,7 +129,7 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
     setAnalysing(false);
   };
 
-  const applyMerge = (dup) => {
+  const applyMerge = (dup, index) => {
     // Build current list (base + merges applied)
     const currentList = { ...groceryList };
     Object.values(mergedItems).forEach(item => {
@@ -181,7 +181,7 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
     });
 
     // Remove just this dup from the list; keep the panel open for remaining items
-    setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.filter(d => d !== dup) }));
+    setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.filter((_, j) => j !== index) }));
   };
 
   const deleteItem = (key) => {
@@ -286,7 +286,7 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
                       </div>
                     </div>
                     <div style={{ display:'flex', gap:8 }}>
-                      <button onClick={() => applyMerge({ ...dup, mergedName: mName, mergedQty: parseFloat(mQty)||1, mergedUnit: mUnit })}
+                      <button onClick={() => applyMerge({ ...dup, mergedName: mName, mergedQty: parseFloat(mQty)||1, mergedUnit: mUnit }, i)}
                         style={{ flex:1, padding:'8px', borderRadius:8, border:'none', background:'var(--amber)', color:'#fff', fontWeight:600, fontSize:13 }}>
                         ✓ Merge
                       </button>
