@@ -139,6 +139,7 @@ const ItemForm = ({ initial, onSave, onCancel, title }) => {
 export default function PantryView({ pantry, setPantry }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId]     = useState(null);
+  const [search, setSearch]           = useState('');
 
   const handleAdd = (item) => {
     setPantry(prev => [...prev, { id: Date.now(), ...item }]);
@@ -153,7 +154,8 @@ export default function PantryView({ pantry, setPantry }) {
   const handleDelete = (id) => setPantry(prev => prev.filter(p => p.id !== id));
 
   const byCategory = {};
-  pantry.forEach(p => {
+  const q = search.toLowerCase().trim();
+  pantry.filter(p => !q || p.name.toLowerCase().includes(q)).forEach(p => {
     if (!byCategory[p.category]) byCategory[p.category] = [];
     byCategory[p.category].push(p);
   });
@@ -172,6 +174,20 @@ export default function PantryView({ pantry, setPantry }) {
           <Icon name="plus" size={15} /> Add
         </button>
       </div>
+
+      {/* Search */}
+      {pantry.length > 0 && (
+        <div style={{ position:'relative', marginBottom:16 }}>
+          <svg style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:'var(--text3)' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search pantry..."
+            style={{ width:'100%', padding:'9px 12px 9px 34px', borderRadius:12, border:'1px solid var(--border)', background:'var(--surface2)', fontSize:14, boxSizing:'border-box' }} />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', color:'var(--text3)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Add form */}
       {showAddForm && (

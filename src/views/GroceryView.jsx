@@ -11,6 +11,7 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const [deletedItems, setDeletedItems] = useState([]);
 
   // AI analysis state
+  const [search, setSearch]         = useState('');
   const [analysing, setAnalysing]   = useState(false);
   const [analysis, setAnalysis]     = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -79,12 +80,15 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
 
   const byCategory = useMemo(() => {
     const bc = {};
-    Object.values(displayList).forEach(item => {
-      if (!bc[item.category]) bc[item.category] = [];
-      bc[item.category].push(item);
-    });
+    const q = search.toLowerCase().trim();
+    Object.values(displayList)
+      .filter(item => !q || item.name.toLowerCase().includes(q))
+      .forEach(item => {
+        if (!bc[item.category]) bc[item.category] = [];
+        bc[item.category].push(item);
+      });
     return bc;
-  }, [displayList]);
+  }, [displayList, search]);
 
   const total = Object.keys(displayList).length;
 
@@ -234,6 +238,18 @@ Only include confident suggestions. Empty arrays if nothing found. JSON only.`,
             {total === 0 ? 'All done — happy shopping! 🎉' : `${total} item${total !== 1 ? 's' : ''} to buy`}
           </p>
         </div>
+      </div>
+
+      {/* Search */}
+      <div style={{ position:'relative', marginBottom:12 }}>
+        <svg style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:'var(--text3)' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search items..."
+          style={{ width:'100%', padding:'9px 12px 9px 34px', borderRadius:12, border:'1px solid var(--border)', background:'var(--surface2)', fontSize:14, boxSizing:'border-box' }} />
+        {search && (
+          <button onClick={() => setSearch('')} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', color:'var(--text3)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        )}
       </div>
 
       {/* Smart analyse button */}
