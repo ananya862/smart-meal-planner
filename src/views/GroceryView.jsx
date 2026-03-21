@@ -190,11 +190,12 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
   };
 
   const toggle = (key, item) => {
-    const nowChecked = !checked[key];
+    const wasChecked = !!checked[key];
+    const nowChecked = !wasChecked;
     setChecked(prev => ({ ...prev, [key]: nowChecked }));
 
-    if (nowChecked) {
-      // Add to pantry if not already there
+    if (nowChecked && !wasChecked) {
+      // Only add to pantry when transitioning from unchecked → checked
       const alreadyInPantry = pantry.some(p => p.name.toLowerCase() === key);
       if (!alreadyInPantry) {
         setPantry(prev => [...prev, {
@@ -204,24 +205,10 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
           unit: item.unit,
           category: item.category,
         }]);
-      } else {
-        // Update quantity in pantry
-        setPantry(prev => prev.map(p =>
-          p.name.toLowerCase() === key
-            ? { ...p, qty: (parseFloat(p.qty) || 0) + item.qty }
-            : p
-        ));
       }
-    } else {
-      // Uncheck — remove from pantry or reduce qty
-      setPantry(prev => {
-        return prev.map(p => {
-          if (p.name.toLowerCase() !== key) return p;
-          const newQty = (parseFloat(p.qty) || 0) - item.qty;
-          return newQty <= 0 ? null : { ...p, qty: Math.round(newQty * 10) / 10 };
-        }).filter(Boolean);
-      });
+      // If already in pantry don't touch quantity — pantry was managed separately
     }
+    // Unchecking does NOT remove from pantry — pantry is a separate record
   };
 
   if (Object.keys(mergedGroceryList).length === 0 && Object.keys(groceryList).length === 0) {
