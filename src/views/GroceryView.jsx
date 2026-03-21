@@ -4,7 +4,7 @@ import { useStorage } from '../hooks/useStorage.js';
 import { Icon, Empty } from '../components/UI.jsx';
 
 export default function GroceryView({ mealPlan, recipes, pantry, setPantry, activeMealTypes }) {
-  const [checked, setChecked] = useStorage('smp_grocery_checked', {});
+
   const [analysing, setAnalysing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -17,7 +17,7 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const mealPlanKey = JSON.stringify(mealPlan);
   useEffect(() => {
     setDeletedItems([]);
-    setChecked({});
+
   }, [mealPlanKey]);
 
   const groceryList = useMemo(() => {
@@ -77,7 +77,7 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   }, [mergedGroceryList]);
 
   const total = Object.keys(mergedGroceryList).length;
-  const checkedCount = Object.values(checked).filter(Boolean).length;
+  const checkedCount = 0;
   const analyseList = async () => {
     setAnalysing(true);
     setAnalysis(null);
@@ -190,25 +190,19 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
   };
 
   const toggle = (key, item) => {
-    const wasChecked = !!checked[key];
-    const nowChecked = !wasChecked;
-    setChecked(prev => ({ ...prev, [key]: nowChecked }));
-
-    if (nowChecked && !wasChecked) {
-      // Only add to pantry when transitioning from unchecked → checked
-      const alreadyInPantry = pantry.some(p => p.name.toLowerCase() === key);
-      if (!alreadyInPantry) {
-        setPantry(prev => [...prev, {
-          id: Date.now(),
-          name: item.name,
-          qty: item.qty,
-          unit: item.unit,
-          category: item.category,
-        }]);
-      }
-      // If already in pantry don't touch quantity — pantry was managed separately
+    // Add to pantry if not already there
+    const alreadyInPantry = pantry.some(p => p.name.toLowerCase() === key);
+    if (!alreadyInPantry) {
+      setPantry(prev => [...prev, {
+        id: Date.now(),
+        name: item.name,
+        qty: item.qty,
+        unit: item.unit,
+        category: item.category,
+      }]);
     }
-    // Unchecking does NOT remove from pantry — pantry is a separate record
+    // Remove from grocery list immediately
+    setDeletedItems(prev => [...new Set([...prev, key])]);
   };
 
   if (Object.keys(mergedGroceryList).length === 0 && Object.keys(groceryList).length === 0) {
@@ -226,18 +220,10 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
         <div>
           <h2 style={{ fontSize: 26 }}>Grocery List</h2>
           <p style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
-            {total - checkedCount === 0
-              ? 'All done — happy shopping! 🎉'
-              : `${total - checkedCount} item${total - checkedCount !== 1 ? 's' : ''} left`
-            }
+`${total} item${total !== 1 ? 's' : ''} to buy`
           </p>
         </div>
-        {checkedCount > 0 && (
-          <button onClick={() => setChecked({})}
-            style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}>
-            Reset
-          </button>
-        )}
+
       </div>
 
       {/* Smart analyse button */}
@@ -358,7 +344,6 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
             {byCategory[cat].map((item, i) => {
               const key = item.name.toLowerCase();
-              const done = !!checked[key];
               return (
                 <button
                   key={i}
@@ -367,28 +352,15 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
                     width: '100%', display: 'flex', alignItems: 'center', gap: 14,
                     padding: '13px 16px', textAlign: 'left',
                     borderBottom: i < byCategory[cat].length - 1 ? '1px solid var(--border)' : 'none',
-                    background: done ? 'var(--surface2)' : 'var(--surface)',
-                    transition: 'background 0.15s',
+                    background: 'var(--surface)',
                   }}
                 >
                   <div style={{
-                    width: 22, height: 22, borderRadius: 6, flexShrink: 0, transition: 'all 0.15s',
-                    border: `2px solid ${done ? 'var(--accent)' : 'var(--border2)'}`,
-                    background: done ? 'var(--accent)' : 'transparent',
+                    width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                    border: '2px solid var(--border2)', background: 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {done && <Icon name="check" size={12} />}
-                  </div>
-                  <span style={{
-                    flex: 1, fontSize: 15,
-                    color: done ? 'var(--text3)' : 'var(--text)',
-                    textDecoration: done ? 'line-through' : 'none',
-                  }}>{item.name}</span>
-                  {done && (
-                    <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600, background: 'var(--accent-light)', borderRadius: 6, padding: '2px 7px', marginRight: 6 }}>
-                      + pantry
-                    </span>
-                  )}
+                  }} />
+                  <span style={{ flex: 1, fontSize: 15, color: 'var(--text)' }}>{item.name}</span>
                   <span style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500 }}>
                     {Number.isInteger(item.qty) ? item.qty : item.qty.toFixed(1)} {item.unit}
                   </span>
