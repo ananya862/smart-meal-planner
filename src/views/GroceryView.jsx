@@ -15,11 +15,12 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const [analysis, setAnalysis]     = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
 
-  // Reset deletions when meal plan changes
+  // Reset deletions when meal plan OR pantry changes
   const mealPlanKey = JSON.stringify(mealPlan);
+  const pantryKey   = JSON.stringify(pantry.map(p => p.id));
   useEffect(() => {
     setDeletedItems([]);
-  }, [mealPlanKey]);
+  }, [mealPlanKey, pantryKey]);
 
   // ── Base grocery list from meal plan ──────────────────────────────────────
   const groceryList = useMemo(() => {
