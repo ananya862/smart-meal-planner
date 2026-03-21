@@ -4,7 +4,7 @@ import { useStorage } from '../hooks/useStorage.js';
 import { Icon, Empty } from '../components/UI.jsx';
 
 export default function GroceryView({ mealPlan, recipes, pantry, setPantry, activeMealTypes }) {
-  const [checked, setChecked] = useState({});
+  const [checked, setChecked] = useStorage('smp_grocery_checked', {});
   const [analysing, setAnalysing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -13,10 +13,11 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const [editingMerge, setEditingMerge] = useState(null); // dup being edited // key: merged name, value: item override
 
 
-  // Clear deleted items when meal plan changes (new recipe added/removed)
+  // Clear deleted and checked items when meal plan changes
   const mealPlanKey = JSON.stringify(mealPlan);
   useEffect(() => {
     setDeletedItems([]);
+    setChecked({});
   }, [mealPlanKey]);
 
   const groceryList = useMemo(() => {
