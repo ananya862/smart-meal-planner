@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CATEGORIES, guessCategory, slotIds } from '../data.js';
 import { useStorage } from '../hooks/useStorage.js';
 import { Icon, Empty } from '../components/UI.jsx';
@@ -9,9 +9,15 @@ export default function GroceryView({ mealPlan, recipes, pantry, setPantry, acti
   const [analysis, setAnalysis] = useState(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [mergedItems, setMergedItems] = useStorage('smp_grocery_merges', {});
-  const [deletedItems, setDeletedItems] = useStorage('smp_grocery_deleted', []);
+  const [deletedItems, setDeletedItems] = useState([]);
   const [editingMerge, setEditingMerge] = useState(null); // dup being edited // key: merged name, value: item override
 
+
+  // Clear deleted items when meal plan changes (new recipe added/removed)
+  const mealPlanKey = JSON.stringify(mealPlan);
+  useEffect(() => {
+    setDeletedItems([]);
+  }, [mealPlanKey]);
 
   const groceryList = useMemo(() => {
     const needed = {};
@@ -238,20 +244,12 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
             }
           </p>
         </div>
-        <div style={{ display:'flex', gap:10 }}>
-          {checkedCount > 0 && (
-            <button onClick={() => setChecked({})}
-              style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}>
-              Reset checks
-            </button>
-          )}
-          {deletedItems.length > 0 && (
-            <button onClick={() => setDeletedItems([])}
-              style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}>
-              Restore deleted
-            </button>
-          )}
-        </div>
+        {checkedCount > 0 && (
+          <button onClick={() => setChecked({})}
+            style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'underline' }}>
+            Reset
+          </button>
+        )}
       </div>
 
       {/* Smart analyse button */}
