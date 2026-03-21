@@ -180,9 +180,8 @@ Find duplicates (same ingredient, different names/specificity) and substitution 
       };
     });
 
-    // Always close and reset after a merge — user can re-run to check again
-    setShowAnalysis(false);
-    setAnalysis(null);
+    // Remove just this dup from the list; keep the panel open for remaining items
+    setAnalysis(prev => ({ ...prev, duplicates: prev.duplicates.filter(d => d !== dup) }));
   };
 
   const deleteItem = (key) => {
