@@ -187,9 +187,25 @@ Only include confident suggestions. Empty arrays if nothing found. JSON only.`,
       };
     });
 
-    // Remove this dup from analysis; close panel if none left
+    // Remove merged dup and re-filter remaining ones against updated displayList
     setAnalysis(prev => {
-      const remaining = (prev.duplicates || []).filter((_, j) => j !== index);
+      // Keys still in list after this merge
+      const postMergeKeys = new Set(
+        Object.keys(displayList).filter(k => !removedKeys.includes(k))
+      );
+      postMergeKeys.add(mergedKey); // the new merged item will be in list
+
+      const remaining = (prev.duplicates || [])
+        .filter((_, j) => j !== index) // remove merged card
+        .filter(d =>
+          // keep only cards where 2+ items still exist in the post-merge list
+          d.items.filter(name =>
+            [...postMergeKeys].some(k =>
+              k === name.toLowerCase() || k.includes(name.toLowerCase()) || name.toLowerCase().includes(k)
+            )
+          ).length >= 2
+        );
+
       if (remaining.length === 0 && (prev.substitutions || []).length === 0) {
         setShowAnalysis(false);
       }
@@ -288,21 +304,42 @@ Only include confident suggestions. Empty arrays if nothing found. JSON only.`,
               <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
                 💡 Substitution suggestions ({analysis.substitutions.length})
               </p>
-              {analysis.substitutions.map((sub, i) => (
-                <div key={i} style={{ background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 12, padding: '12px 14px', marginBottom: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{sub.needed}</span>
-                    <span style={{ color: 'var(--text3)' }}>→</span>
-                    <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{sub.substitute}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface2)', borderRadius: 6, padding: '1px 6px' }}>pantry: {sub.pantryQty}</span>
+              {analysis.substitutions.map((sub, i) => {
+                const dismissSub = () => setAnalysis(prev => ({
+                  ...prev,
+                  substitutions: prev.substitutions.filter((_, j) => j !== i),
+                }));
+                const useSubstitute = () => {
+                  // Remove needed item from grocery list
+                  const key = sub.needed.toLowerCase().trim();
+                  const matchKey = Object.keys(displayList).find(k =>
+                    k === key || k.includes(key) || key.includes(k)
+                  );
+                  if (matchKey) setDeletedItems(prev => [...new Set([...prev, matchKey])]);
+                  dismissSub();
+                };
+                return (
+                  <div key={i} style={{ background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 12, padding: '12px 14px', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{sub.needed}</span>
+                      <span style={{ color: 'var(--text3)' }}>→</span>
+                      <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{sub.substitute}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface2)', borderRadius: 6, padding: '1px 6px' }}>pantry: {sub.pantryQty}</span>
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 10 }}>{sub.reason}</p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={useSubstitute}
+                        style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 13 }}>
+                        ✓ Use substitute
+                      </button>
+                      <button onClick={dismissSub}
+                        style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13 }}>
+                        Keep on list
+                      </button>
+                    </div>
                   </div>
-                  <p style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 8 }}>{sub.reason}</p>
-                  <button onClick={() => setAnalysis(prev => ({ ...prev, substitutions: prev.substitutions.filter((_, j) => j !== i) }))}
-                    style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 12 }}>
-                    Dismiss
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
